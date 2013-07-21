@@ -1,7 +1,7 @@
 /*
 integer
 An Arbitrary Precision Integer Type
-by Jason Lee @ calccrypto@gmail.com
+by Jason Lee @ calccrypto at gmail.com
 
 With much help from:
     Auston Sterling - Initial debugging and coding help and FFT multiplication
