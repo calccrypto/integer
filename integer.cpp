@@ -1025,7 +1025,7 @@ bool integer::sign() const{
 }
 
 // get number of bits
-size_t integer::bits() const{
+unsigned int integer::bits() const{
     if (value.empty()){
         return 0;
     }
@@ -1038,8 +1038,16 @@ size_t integer::bits() const{
     return out;
 }
 
+unsigned int integer::bytes() const{
+    if (value.empty()){
+        return 0;
+    }
+    unsigned int b = bits();
+    return (b >> 3) + (b & 7);
+}
+
 // get number of digits
-unsigned int integer::digits(){
+unsigned int integer::digits() const{
     return value.size();
 }
 

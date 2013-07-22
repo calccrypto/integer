@@ -352,9 +352,11 @@ class integer{
         // get private values
         bool sign() const;
         // get number of bits
-        size_t bits() const;
+        unsigned int bits() const;
+        // get numboer of bytes
+        unsigned int bytes() const;
         // get number of digits
-        unsigned int digits();
+        unsigned int digits() const;
         // get internal data
         base data() const;
 
