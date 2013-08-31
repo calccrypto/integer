@@ -1,8 +1,8 @@
 integer
-
 An Arbitrary Precision Integer Type
-
 by Jason Lee @ calccrypto at gmail.com
+
+Please see LICENSE file for license.
 
 With much help from:
     Auston Sterling - Initial debugging and coding help and FFT multiplication
