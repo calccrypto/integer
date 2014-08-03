@@ -7,7 +7,8 @@ Please see LICENSE file for license.
 With much help from:
     Auston Sterling - Initial debugging and coding help and FFT multiplication
     Corbin @ Code Review (StackExchange) - wrote a sizeable chunk of code and suggestions
-    Keith Nicholas  @ Code Review (StackExchange)
+    Keith Nicholas @ Code Review (StackExchange)
+    mugwort-rc - tons of edits
     ROBOKITTY @ Code Review (StackExchange)
     Winston Ewert @ Code Review (StackExchange) - suggested many improvements
 
