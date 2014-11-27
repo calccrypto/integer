@@ -4,6 +4,7 @@ constexpr integer::DIGIT integer::NEG1;
 constexpr integer::DIGIT integer::OCTETS;
 constexpr integer::DIGIT integer::BITS;
 constexpr integer::DIGIT integer::HIGH_BIT;
+const std::string integer::B16 = "0123456789abcdef";
 
 void integer::trim(){                              // remove top 0 digits to save memory
     while (!_value.empty() && !_value[0]){
@@ -38,10 +39,6 @@ integer::integer(const bool & b) :
     _sign(false),
     _value(1, b)
 {}
-
-integer::integer(const char & val){
-    setFromZ(val, 8);
-}
 
 integer::integer(const uint8_t & val){
     setFromZ(val, 8);
@@ -90,15 +87,17 @@ integer::integer(const std::string & val, const uint16_t & base)
         *this = integer(it, val.end(), base);
         _sign = sign;
     }
+
+    trim();
 }
 
 //  RHS input args only
 
 // Assignment integer::operator
 
-const integer & integer::operator=(const integer & val){
-    _sign = val._sign;
-    _value = val._value;
+const integer & integer::operator=(const integer & rhs){
+    _sign = rhs._sign;
+    _value = rhs._value;
     return *this;
 }
 
@@ -108,57 +107,51 @@ const integer & integer::operator=(const bool & rhs){
     return *this;
 }
 
-const integer & integer::operator=(const char & rhs){
+const integer & integer::operator=(const uint8_t & rhs){
     _value.clear();
-    _value.push_back(rhs);
+    *this += rhs;
     return *this;
 }
 
-const integer & integer::operator=(const uint8_t & val){
+const integer & integer::operator=(const uint16_t & rhs){
     _value.clear();
-    *this += val;
+    *this += rhs;
     return *this;
 }
 
-const integer & integer::operator=(const uint16_t & val){
+const integer & integer::operator=(const uint32_t & rhs){
     _value.clear();
-    *this += val;
+    *this += rhs;
     return *this;
 }
 
-const integer & integer::operator=(const uint32_t & val){
+const integer & integer::operator=(const uint64_t & rhs){
     _value.clear();
-    *this += val;
+    *this += rhs;
     return *this;
 }
 
-const integer & integer::operator=(const uint64_t & val){
+const integer & integer::operator=(const int8_t & rhs){
     _value.clear();
-    *this += val;
+    *this += rhs;
     return *this;
 }
 
-const integer & integer::operator=(const int8_t & val){
+const integer & integer::operator=(const int16_t & rhs){
     _value.clear();
-    *this += val;
+    *this += rhs;
     return *this;
 }
 
-const integer & integer::operator=(const int16_t & val){
+const integer & integer::operator=(const int32_t & rhs){
     _value.clear();
-    *this += val;
+    *this += rhs;
     return *this;
 }
 
-const integer & integer::operator=(const int32_t & val){
+const integer & integer::operator=(const int64_t & rhs){
     _value.clear();
-    *this += val;
-    return *this;
-}
-
-const integer & integer::operator=(const int64_t & val){
-    _value.clear();
-    *this += val;
+    *this += rhs;
     return *this;
 }
 
@@ -167,24 +160,24 @@ integer::operator bool() const{
     return !_value.empty();
 }
 
-integer::operator char() const{
-    if (_value.empty()){
-        return 0;
-    }
-    return static_cast <char> (_value.back() & 255);
-}
-
 integer::operator uint8_t() const{
     if (_value.empty()){
         return 0;
     }
-    return _value.back() & 255;
+    uint8_t out = static_cast <uint8_t> (_value.back() & 255);
+    if (_sign){
+        out = -out;
+    }
+    return out;
 }
 
 integer::operator uint16_t() const{
     uint16_t out = 0;
     for(uint8_t x = 0; x < std::min(_value.size(), 2 / sizeof(DIGIT)); x++){
         out += static_cast <uint16_t> (_value[_value.size() - x - 1]) << (x * BITS);
+    }
+    if (_sign){
+        out = -out;
     }
     return out;
 }
@@ -194,6 +187,9 @@ integer::operator uint32_t() const{
     for(uint8_t x = 0; x < std::min(_value.size(), 4 / sizeof(DIGIT)); x++){
         out += static_cast <uint32_t> (_value[_value.size() - x - 1]) << (x * BITS);
     }
+    if (_sign){
+        out = -out;
+    }
     return out;
 }
 
@@ -202,6 +198,9 @@ integer::operator uint64_t() const{
     for(uint8_t x = 0; x < std::min(_value.size(), 8 / sizeof(DIGIT)); x++){
         out += static_cast <uint64_t> (_value[_value.size() - x - 1]) << (x * BITS);
     }
+    if (_sign){
+        out = -out;
+    }
     return out;
 }
 
@@ -209,7 +208,7 @@ integer::operator int8_t() const{
     if (_value.empty()){
         return 0;
     }
-    int8_t out = _value.back() & 255;
+    int8_t out = static_cast <uint8_t> (_value.back() & 255);
     if (_sign){
         out = -out;
     }
@@ -262,10 +261,6 @@ integer integer::operator&(const bool & rhs) const{
     return *this & integer(rhs);
 }
 
-integer integer::operator&(const char & rhs) const{
-    return *this & integer(rhs);
-}
-
 integer integer::operator&(const uint8_t & rhs) const{
     return *this & integer(rhs);
 }
@@ -300,15 +295,11 @@ integer integer::operator&(const int64_t & rhs) const{
 
 integer integer::operator&=(const integer & rhs){
     *this = *this & rhs;
+    trim();
     return *this;
 }
 
 integer integer::operator&=(const bool & rhs){
-    *this &= integer(rhs);
-    return *this;
-}
-
-integer integer::operator&=(const char & rhs){
     *this &= integer(rhs);
     return *this;
 }
@@ -372,10 +363,6 @@ integer integer::operator|(const bool & rhs) const{
     return *this | integer(rhs);
 }
 
-integer integer::operator|(const char & rhs) const{
-    return *this | integer(rhs);
-}
-
 integer integer::operator|(const uint8_t & rhs) const{
     return *this | integer(rhs);
 }
@@ -410,15 +397,11 @@ integer integer::operator|(const int64_t & rhs) const{
 
 integer integer::operator|=(const integer & rhs){
     *this = *this | rhs;
+    trim();
     return *this;
 }
 
 integer integer::operator|=(const bool & rhs){
-    *this |= integer(rhs);
-    return *this;
-}
-
-integer integer::operator|=(const char & rhs){
     *this |= integer(rhs);
     return *this;
 }
@@ -482,10 +465,6 @@ integer integer::operator^(const bool & rhs) const{
     return *this ^ integer(rhs);
 }
 
-integer integer::operator^(const char & rhs) const{
-    return *this ^ integer(rhs);
-}
-
 integer integer::operator^(const uint8_t & rhs) const{
     return *this ^ integer(rhs);
 }
@@ -524,11 +503,6 @@ integer integer::operator^=(const integer & rhs){
 }
 
 integer integer::operator^=(const bool & rhs){
-    *this ^= integer(rhs);
-    return *this;
-}
-
-integer integer::operator^=(const char & rhs){
     *this ^= integer(rhs);
     return *this;
 }
@@ -630,10 +604,6 @@ integer integer::operator<<(const bool & shift) const{
     return *this << integer(shift);
 }
 
-integer integer::operator<<(const char & shift) const{
-    return *this << integer(shift);
-}
-
 integer integer::operator<<(const uint8_t & shift) const{
     return *this << integer(shift);
 }
@@ -668,15 +638,11 @@ integer integer::operator<<(const int64_t & shift) const{
 
 integer integer::operator<<=(const integer & shift){
     *this = *this << integer(shift);
+    trim();
     return *this;
 }
 
 integer integer::operator<<=(const bool & shift){
-    *this <<= integer(shift);
-    return *this;
-}
-
-integer integer::operator<<=(const char & shift){
     *this <<= integer(shift);
     return *this;
 }
@@ -751,10 +717,6 @@ integer integer::operator>>(const bool & shift) const{
     return *this >> integer(shift);
 }
 
-integer integer::operator>>(const char & shift) const{
-    return *this >> integer(shift);
-}
-
 integer integer::operator>>(const uint8_t & shift) const{
     return *this >> integer(shift);
 }
@@ -789,15 +751,11 @@ integer integer::operator>>(const int64_t & shift) const{
 
 integer integer::operator>>=(const integer & shift){
     *this = *this >> integer(shift);
+    trim();
     return *this;
 }
 
 integer integer::operator>>=(const bool & shift){
-    *this = *this >> integer(shift);
-    return *this;
-}
-
-integer integer::operator>>=(const char & shift){
     *this = *this >> integer(shift);
     return *this;
 }
@@ -856,10 +814,6 @@ bool integer::operator==(const bool & rhs) const{
     return *this == integer(rhs);
 }
 
-bool integer::operator==(const char & rhs) const{
-    return *this == integer(rhs);
-}
-
 bool integer::operator==(const uint8_t & rhs) const{
     return *this == integer(rhs);
 }
@@ -897,10 +851,6 @@ bool integer::operator!=(const integer & rhs) const{
 }
 
 bool integer::operator!=(const bool & rhs) const{
-    return (*this != integer(rhs));
-}
-
-bool integer::operator!=(const char & rhs) const{
     return (*this != integer(rhs));
 }
 
@@ -973,10 +923,6 @@ bool integer::operator>(const bool & rhs) const{
     return *this > integer(rhs);
 }
 
-bool integer::operator>(const char & rhs) const{
-    return *this > integer(rhs);
-}
-
 bool integer::operator>(const uint8_t & rhs) const{
     return *this > integer(rhs);
 }
@@ -1014,10 +960,6 @@ bool integer::operator>=(const integer & rhs) const{
 }
 
 bool integer::operator>=(const bool & rhs) const{
-    return *this >= integer(rhs);
-}
-
-bool integer::operator>=(const char & rhs) const{
     return *this >= integer(rhs);
 }
 
@@ -1090,10 +1032,6 @@ bool integer::operator<(const bool & rhs) const{
     return *this < integer(rhs);
 }
 
-bool integer::operator<(const char & rhs) const{
-    return *this < integer(rhs);
-}
-
 bool integer::operator<(const uint8_t & rhs) const{
     return *this < integer(rhs);
 }
@@ -1131,10 +1069,6 @@ bool integer::operator<=(const integer & rhs) const{
 }
 
 bool integer::operator<=(const bool & rhs) const{
-    return *this <= integer(rhs);
-}
-
-bool integer::operator<=(const char & rhs) const{
     return *this <= integer(rhs);
 }
 
@@ -1241,10 +1175,6 @@ integer integer::operator+(const bool & rhs) const{
     return *this + integer(rhs);
 }
 
-integer integer::operator+(const char & rhs) const{
-    return *this + integer(rhs);
-}
-
 integer integer::operator+(const uint8_t & rhs) const{
     return *this + integer(rhs);
 }
@@ -1283,11 +1213,6 @@ integer integer::operator+=(const integer & rhs){
 }
 
 integer integer::operator+=(const bool & rhs){
-    *this = *this + rhs;
-    return *this;
-}
-
-integer integer::operator+=(const char & rhs){
     *this = *this + rhs;
     return *this;
 }
@@ -1415,10 +1340,6 @@ integer integer::operator-(const bool & rhs) const{
     return *this - integer(rhs);
 }
 
-integer integer::operator-(const char & rhs) const{
-    return *this - integer(rhs);
-}
-
 integer integer::operator-(const uint8_t & rhs) const{
     return *this - integer(rhs);
 }
@@ -1457,11 +1378,6 @@ integer integer::operator-=(const integer & rhs){
 }
 
 integer integer::operator-=(const bool & rhs){
-    *this -= integer(rhs);
-    return *this;
-}
-
-integer integer::operator-=(const char & rhs){
     *this -= integer(rhs);
     return *this;
 }
@@ -1797,10 +1713,6 @@ integer integer::operator*(const bool & rhs) const{
     return *this * integer(rhs);
 }
 
-integer integer::operator*(const char & rhs) const{
-    return *this * integer(rhs);
-}
-
 integer integer::operator*(const uint8_t & rhs) const{
     return *this * integer(rhs);
 }
@@ -1839,11 +1751,6 @@ integer integer::operator*=(const integer & rhs){
 }
 
 integer integer::operator*=(const bool & rhs){
-    *this = *this * rhs;
-    return *this;
-}
-
-integer integer::operator*=(const char & rhs){
     *this = *this * rhs;
     return *this;
 }
@@ -1887,38 +1794,38 @@ integer integer::operator*=(const int64_t & rhs){
     return *this;
 }
 
-// Naive Division: keep subtracting until lhs == 0
-std::pair <integer, integer> integer::naive_div(const integer & lhs, const integer & rhs) const{
-    std::pair <integer, integer> qr (0, lhs);
-    while (qr.second >= rhs){
-        qr.second -= rhs;
-        qr.first++;
-    }
-    return qr;
-}
+// // Naive Division: keep subtracting until lhs == 0
+// std::pair <integer, integer> integer::naive_div(const integer & lhs, const integer & rhs) const{
+    // std::pair <integer, integer> qr (0, lhs);
+    // while (qr.second >= rhs){
+        // qr.second -= rhs;
+        // qr.first++;
+    // }
+    // return qr;
+// }
 
-// Long Division returning both quotient and remainder
-std::pair <integer, integer> integer::long_div(const integer & lhs, const integer & rhs) const{
-   std::pair <integer, integer> qr(0, lhs);
-   integer copyd = rhs;
-   integer adder = 1;
-   integer shift = qr.second.bits() - copyd.bits();
-    copyd <<= shift;
-    adder <<= shift;
-   // while (qr.second > copyd){
-       // copyd <<= 1;
-       // adder <<= 1;
+// // Long Division returning both quotient and remainder
+// std::pair <integer, integer> integer::long_div(const integer & lhs, const integer & rhs) const{
+   // std::pair <integer, integer> qr(0, lhs);
+   // integer copyd = rhs;
+   // integer adder = 1;
+   // integer shift = qr.second.bits() - copyd.bits();
+    // copyd <<= shift;
+    // adder <<= shift;
+   // // while (qr.second > copyd){
+       // // copyd <<= 1;
+       // // adder <<= 1;
+   // // }
+   // while (qr.second >= rhs){
+       // if (qr.second >= copyd){
+           // qr.second -= copyd;
+           // qr.first |= adder;
+       // }
+       // copyd >>= 1;
+       // adder >>= 1;
    // }
-   while (qr.second >= rhs){
-       if (qr.second >= copyd){
-           qr.second -= copyd;
-           qr.first |= adder;
-       }
-       copyd >>= 1;
-       adder >>= 1;
-   }
-   return qr;
-}
+   // return qr;
+// }
 
 // // Recursive Division that returns both the quotient and remainder
 // // Recursion took up way too much memory
@@ -2003,10 +1910,6 @@ integer integer::operator/(const bool & rhs) const{
     return *this / integer(rhs);
 }
 
-integer integer::operator/(const char & rhs) const{
-    return *this / integer(rhs);
-}
-
 integer integer::operator/(const uint8_t & rhs) const{
     return *this / integer(rhs);
 }
@@ -2045,11 +1948,6 @@ integer integer::operator/=(const integer & rhs){
 }
 
 integer integer::operator/=(const bool & rhs){
-    *this = *this / rhs;
-    return *this;
-}
-
-integer integer::operator/=(const char & rhs){
     *this = *this / rhs;
     return *this;
 }
@@ -2114,10 +2012,6 @@ integer integer::operator%(const bool & rhs) const{
     return *this % integer(rhs);
 }
 
-integer integer::operator%(const char & rhs) const{
-    return *this % integer(rhs);
-}
-
 integer integer::operator%(const uint8_t & rhs) const{
     return *this % integer(rhs);
 }
@@ -2156,11 +2050,6 @@ integer integer::operator%=(const integer & rhs){
 }
 
 integer integer::operator%=(const bool & rhs){
-    *this = *this % rhs;
-    return *this;
-}
-
-integer integer::operator%=(const char & rhs){
     *this = *this % rhs;
     return *this;
 }
@@ -2277,7 +2166,7 @@ integer::REP integer::data() const{
 }
 
 // Miscellaneous Functions
-integer integer::twos_complement(unsigned int b) const{
+integer integer::twos_complement(unsigned int bits) const{
     integer::REP out = _value;
     for(REP_SIZE_T i = 1; i < out.size(); i++){
         out[i] ^= NEG1;
@@ -2293,10 +2182,10 @@ integer integer::twos_complement(unsigned int b) const{
         top <<= 1;
     }
     integer OUT(out, _sign);
-    while (b){
+    while (bits){
         OUT ^= top;
         top <<= 1;
-        b--;
+        bits--;
     }
     return OUT + 1;
 }
@@ -2348,14 +2237,20 @@ std::string integer::str(const uint16_t & base, const unsigned int & length) con
         if ((base < 2) || (base > 16)){                     // if base outside of 2 <= base <= 16
             throw std::runtime_error("Error: Bad base: " + integer(base).str());
         }
-        integer rhs = *this;
-        static const std::string B16 = "0123456789abcdef";
-        std::pair <integer, integer> qr;
-        do{
-            qr = dm(rhs, base);
-            out = B16[qr.second] + out;
-            rhs = qr.first;
-        } while (rhs);
+
+        integer rhs = abs();                                // use absolute value to make sure index stays small
+
+        if (*this == 0){
+            out = "0";
+        }
+        else{
+            std::pair <integer, integer> qr;
+            do{
+                qr = dm(rhs, base);
+                out = B16[qr.second] + out;
+                rhs = qr.first;
+            } while (rhs);
+        }
 
         while (out.size() < length){
             out = "0" + out;
@@ -2372,10 +2267,6 @@ std::string integer::str(const uint16_t & base, const unsigned int & length) con
 
 // Bitwise Operators
 integer operator&(const bool & lhs, const integer & rhs){
-    return integer(lhs) & rhs;
-}
-
-integer operator&(const char & lhs, const integer & rhs){
     return integer(lhs) & rhs;
 }
 
@@ -2415,10 +2306,6 @@ bool operator&=(bool & lhs, const integer & rhs){
     return (lhs = static_cast <bool> (integer(lhs) & rhs));
 }
 
-char operator&=(char & lhs, const integer & rhs){
-    return (lhs = static_cast <char> (integer(lhs) & rhs));
-}
-
 uint8_t operator&=(uint8_t & lhs, const integer & rhs){
     return (lhs = static_cast <uint8_t> (integer(lhs) & rhs));
 }
@@ -2452,10 +2339,6 @@ int64_t operator&=(int64_t & lhs, const integer & rhs){
 }
 
 integer operator|(const bool & lhs, const integer & rhs){
-    return integer(lhs) | rhs;
-}
-
-integer operator|(const char & lhs, const integer & rhs){
     return integer(lhs) | rhs;
 }
 
@@ -2495,10 +2378,6 @@ bool operator|=(bool & lhs, const integer & rhs){
     return (lhs = static_cast <bool> (integer(lhs) | rhs));
 }
 
-char operator|=(char & lhs, const integer & rhs){
-    return (lhs = static_cast <char> (integer(lhs) | rhs));
-}
-
 uint8_t operator|=(uint8_t & lhs, const integer & rhs){
     return (lhs = static_cast <uint8_t> (integer(lhs) | rhs));
 }
@@ -2532,10 +2411,6 @@ int64_t operator|=(int64_t & lhs, const integer & rhs){
 }
 
 integer operator^(const bool & lhs, const integer & rhs){
-    return integer(lhs) ^ rhs;
-}
-
-integer operator^(const char & lhs, const integer & rhs){
     return integer(lhs) ^ rhs;
 }
 
@@ -2575,10 +2450,6 @@ bool operator^=(bool & lhs, const integer & rhs){
     return (lhs = static_cast <bool> (integer(lhs) ^ rhs));
 }
 
-char operator^=(char & lhs, const integer & rhs){
-    return (lhs = static_cast <char> (integer(lhs) ^ rhs));
-}
-
 uint8_t operator^=(uint8_t & lhs, const integer & rhs){
     return (lhs = static_cast <uint8_t> (integer(lhs) ^ rhs));
 }
@@ -2613,10 +2484,6 @@ int64_t operator^=(int64_t & lhs, const integer & rhs){
 
 // Bitshift operators
 integer operator<<(const bool & lhs, const integer & rhs){
-    return integer(lhs) << rhs;
-}
-
-integer operator<<(const char & lhs, const integer & rhs){
     return integer(lhs) << rhs;
 }
 
@@ -2656,10 +2523,6 @@ bool operator<<=(bool & lhs, const integer & rhs){
     return (lhs = static_cast <bool> (integer(lhs) << rhs));
 }
 
-char operator<<=(char & lhs, const integer & rhs){
-    return (lhs = static_cast <char> (integer(lhs) << rhs));
-}
-
 uint8_t operator<<=(uint8_t & lhs, const integer & rhs){
     return (lhs = static_cast <uint8_t> (integer(lhs) << rhs));
 }
@@ -2693,10 +2556,6 @@ int64_t operator<<=(int64_t & lhs, const integer & rhs){
 }
 
 integer operator>>(const bool & lhs, const integer & rhs){
-    return integer(lhs) >> rhs;
-}
-
-integer operator>>(const char & lhs, const integer & rhs){
     return integer(lhs) >> rhs;
 }
 
@@ -2736,10 +2595,6 @@ bool operator>>=(bool & lhs, const integer & rhs){
     return (lhs = static_cast <bool> (integer(lhs) >> rhs));
 }
 
-char operator>>=(char & lhs, const integer & rhs){
-    return (lhs = static_cast <char> (integer(lhs) >> rhs));
-}
-
 uint8_t operator>>=(uint8_t & lhs, const integer & rhs){
     return (lhs = static_cast <uint8_t> (integer(lhs) >> rhs));
 }
@@ -2774,10 +2629,6 @@ int64_t operator>>=(int64_t & lhs, const integer & rhs){
 
 // Comparison Operators
 bool operator==(bool & lhs, const integer & rhs){
-    return rhs == lhs;
-}
-
-bool operator==(char & lhs, const integer & rhs){
     return rhs == lhs;
 }
 
@@ -2817,10 +2668,6 @@ bool operator!=(bool & lhs, const integer & rhs){
     return rhs != lhs;
 }
 
-bool operator!=(char & lhs, const integer & rhs){
-    return rhs != lhs;
-}
-
 bool operator!=(uint8_t & lhs, const integer & rhs){
     return rhs != lhs;
 }
@@ -2854,10 +2701,6 @@ bool operator!=(int64_t & lhs, const integer & rhs){
 }
 
 bool operator>(const bool & lhs, const integer & rhs){
-    return rhs < lhs;
-}
-
-bool operator>(const char & lhs, const integer & rhs){
     return rhs < lhs;
 }
 
@@ -2897,10 +2740,6 @@ bool operator>=(bool & lhs, const integer & rhs){
     return rhs <= lhs;
 }
 
-bool operator>=(char & lhs, const integer & rhs){
-    return rhs <= lhs;
-}
-
 bool operator>=(uint8_t & lhs, const integer & rhs){
     return rhs <= lhs;
 }
@@ -2937,10 +2776,6 @@ bool operator<(const bool & lhs, const integer & rhs){
     return rhs > lhs;
 }
 
-bool operator<(const char & lhs, const integer & rhs){
-    return rhs > lhs;
-}
-
 bool operator<(const uint8_t & lhs, const integer & rhs){
     return rhs > lhs;
 }
@@ -2974,10 +2809,6 @@ bool operator<(const int64_t & lhs, const integer & rhs){
 }
 
 bool operator<=(bool & lhs, const integer & rhs){
-    return rhs >= lhs;
-}
-
-bool operator<=(char & lhs, const integer & rhs){
     return rhs >= lhs;
 }
 
@@ -3018,10 +2849,6 @@ integer operator+(const bool & lhs, const integer & rhs){
     return integer(lhs) + rhs;
 }
 
-integer operator+(const char & lhs, const integer & rhs){
-    return integer(lhs) + rhs;
-}
-
 integer operator+(const uint8_t & lhs, const integer & rhs){
     return integer(lhs) + rhs;
 }
@@ -3056,10 +2883,6 @@ integer operator+(const int64_t & lhs, const integer & rhs){
 
 bool operator+=(bool & lhs, const integer & rhs){
     return (lhs = static_cast <bool> (integer(lhs) + rhs));
-}
-
-char operator+=(char & lhs, const integer & rhs){
-    return (lhs = static_cast <char> (integer(lhs) + rhs));
 }
 
 uint8_t operator+=(uint8_t & lhs, const integer & rhs){
@@ -3098,10 +2921,6 @@ integer operator-(const bool & lhs, const integer & rhs){
     return integer(lhs) - rhs;
 }
 
-integer operator-(const char & lhs, const integer & rhs){
-    return integer(lhs) - rhs;
-}
-
 integer operator-(const uint8_t & lhs, const integer & rhs){
     return integer(lhs) - rhs;
 }
@@ -3134,13 +2953,8 @@ integer operator-(const int64_t & lhs, const integer & rhs){
     return integer(lhs) - rhs;
 }
 
-
 bool operator-=(bool & lhs, const integer & rhs){
     return (lhs = static_cast <bool> (integer(lhs) - rhs));
-}
-
-char operator-=(char & lhs, const integer & rhs){
-    return (lhs = static_cast <char> (integer(lhs) - rhs));
 }
 
 uint8_t operator-=(uint8_t & lhs, const integer & rhs){
@@ -3176,10 +2990,6 @@ int64_t operator-=(int64_t & lhs, const integer & rhs){
 }
 
 integer operator*(const bool & lhs, const integer & rhs){
-    return integer(lhs) * rhs;
-}
-
-integer operator*(const char & lhs, const integer & rhs){
     return integer(lhs) * rhs;
 }
 
@@ -3219,10 +3029,6 @@ bool operator*=(bool & lhs, const integer & rhs){
     return (lhs = static_cast <bool> (integer(lhs) * rhs));
 }
 
-char operator*=(char & lhs, const integer & rhs){
-    return (lhs = static_cast <char> (integer(lhs) * rhs));
-}
-
 uint8_t operator*=(uint8_t & lhs, const integer & rhs){
     return (lhs = static_cast <uint8_t> (integer(lhs) * rhs));
 }
@@ -3256,10 +3062,6 @@ int64_t operator*=(int64_t & lhs, const integer & rhs){
 }
 
 integer operator/(const bool & lhs, const integer & rhs){
-    return integer(lhs) / rhs;
-}
-
-integer operator/(const char & lhs, const integer & rhs){
     return integer(lhs) / rhs;
 }
 
@@ -3299,10 +3101,6 @@ bool operator/=(bool & lhs, const integer & rhs){
     return (lhs = static_cast <bool> (integer(lhs) / rhs));
 }
 
-char operator/=(char & lhs, const integer & rhs){
-    return (lhs = static_cast <char> (integer(lhs) / rhs));
-}
-
 uint8_t operator/=(uint8_t & lhs, const integer & rhs){
     return (lhs = static_cast <uint8_t> (integer(lhs) / rhs));
 }
@@ -3336,10 +3134,6 @@ int64_t operator/=(int64_t & lhs, const integer & rhs){
 }
 
 integer operator%(const bool & lhs, const integer & rhs){
-    return integer(lhs) % rhs;
-}
-
-integer operator%(const char & lhs, const integer & rhs){
     return integer(lhs) % rhs;
 }
 
@@ -3377,10 +3171,6 @@ integer operator%(const int64_t & lhs, const integer & rhs){
 
 bool operator%=(bool & lhs, const integer & rhs){
     return (lhs = static_cast <bool> (integer(lhs) % rhs));
-}
-
-char operator%=(char & lhs, const integer & rhs){
-    return (lhs = static_cast <char> (integer(lhs) % rhs));
 }
 
 uint8_t operator%=(uint8_t & lhs, const integer & rhs){
