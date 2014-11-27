@@ -20,18 +20,17 @@ although their outputs might not necessarily be the same output
 as a standard version of that operator. Anything involving
 pointers and addresses should be taken care of by C++.
 
-Data is stored in big endian, so value[0] is the most
+Data is stored in big-endian, so value[0] is the most
 significant digit, and value[value.size() - 1] is the
 least significant digit.
 
 Negative values are stored as their positive value,
 with a bool that says the value is negative.
 
-NOTE: Build with the newest compiler. Some functions are only
-      supported in the latest versions of C++ compilers and
-      standards.
+NOTE: C++11 is required. If using GCC, the earliest version
+      that can support the C++11 functions used is 4.7.
 
-NOTE: Base256 strings are assumed to be postive when read into
+NOTE: Base256 strings are assumed to be positive when read into
       integer. Use operator-() to negate the value.
 
 NOTE: Multiple algorithms for subtraction, multiplication, and
