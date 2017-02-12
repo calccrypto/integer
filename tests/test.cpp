@@ -1,3 +1,6 @@
+/*
+Simple test program for integer
+
 The MIT License (MIT)
 
 Copyright (c) 2013 - 2017 Jason Lee @ calccrypto at gmail.com
@@ -19,3 +22,18 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+*/
+
+#include <iostream>
+#include <limits>
+#include <string>
+#include <sstream>
+
+#include <gtest/gtest.h>
+
+#warning add bad input types to each test
+
+int main(int argc, char * argv[]){
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

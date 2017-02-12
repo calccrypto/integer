@@ -1,19 +1,21 @@
 #include "integer.h"
 
-constexpr integer::DIGIT integer::NEG1;
-constexpr integer::DIGIT integer::OCTETS;
-constexpr integer::DIGIT integer::BITS;
-constexpr integer::DIGIT integer::HIGH_BIT;
-constexpr integer::Sign  integer::POSITIVE;
-constexpr integer::Sign  integer::NEGATIVE;
+constexpr INTEGER_DIGIT_T integer::NEG1;
+constexpr INTEGER_DIGIT_T integer::OCTETS;
+constexpr INTEGER_DIGIT_T integer::BITS;
+constexpr INTEGER_DIGIT_T integer::HIGH_BIT;
+constexpr integer::Sign integer::POSITIVE;
+constexpr integer::Sign integer::NEGATIVE;
 
-void integer::trim(){                       // remove top 0 digits to save memory
+integer & integer::trim(){                  // remove top 0 digits to save memory
     while (!_value.empty() && !_value[0]){
         _value.pop_front();
     }
     if (_value.empty()){                    // change sign to false if _value is 0
         _sign = integer::POSITIVE;
     }
+
+    return *this;
 }
 
 // Constructors
@@ -85,22 +87,29 @@ integer::integer(const int64_t & val){
 
 integer::integer(const std::string & val, const uint16_t & base)
 {
-    std::string::const_iterator it = val.begin();
+    if (((2 <= base) && (base <= 10)) ||
+        (base == 16) || (base == 256)){
 
-    if (it != val.end()){
-        // minus sign indicates negative value only if the base is between 2 and 16 inclusive
-        integer::Sign sign = integer::POSITIVE;
-        if ((2 <= base) && (base <= 16)){
-            if (*it == '-'){
-                sign = integer::NEGATIVE;
-                it++;
+        std::string::const_iterator it = val.begin();
+
+        if (it != val.end()){
+            // minus sign indicates negative value only if the base is between 2 and 16 inclusive
+            integer::Sign sign = integer::POSITIVE;
+            if ((2 <= base) && (base <= 16)){
+                if (*it == '-'){
+                    sign = integer::NEGATIVE;
+                    it++;
+                }
             }
+            *this = integer(it, val.end(), base);
+            _sign = sign;
         }
-        *this = integer(it, val.end(), base);
-        _sign = sign;
-    }
 
-    trim();
+        trim();
+    }
+    else {
+        throw std::runtime_error("Error: Cannot convert from base " + std::to_string(base));
+    }
 }
 
 //  RHS input args only
@@ -109,8 +118,7 @@ integer::integer(const std::string & val, const uint16_t & base)
 integer & integer::operator=(const integer & rhs){
     _sign = rhs._sign;
     _value = rhs._value;
-    trim();
-    return *this;
+    return trim();
 }
 
 integer & integer::operator=(integer && rhs){
@@ -119,8 +127,7 @@ integer & integer::operator=(integer && rhs){
         _value = rhs._value;
         rhs = 0;
     }
-    trim();
-    return *this;
+    return trim();
 }
 
 // Typecast Operators
@@ -141,7 +148,7 @@ integer::operator uint8_t() const{
 
 integer::operator uint16_t() const{
     uint16_t out = 0;
-    for(uint8_t x = 0; x < std::min(_value.size(), 2 / sizeof(integer::DIGIT)); x++){
+    for(uint8_t x = 0; x < std::min(_value.size(), (integer::REP_SIZE_T) (2 / integer::OCTETS)); x++){
         out += static_cast <uint16_t> (_value[_value.size() - x - 1]) << (x * integer::BITS);
     }
     if (_sign){
@@ -152,7 +159,7 @@ integer::operator uint16_t() const{
 
 integer::operator uint32_t() const{
     uint32_t out = 0;
-    for(uint8_t x = 0; x < std::min(_value.size(), 4 / sizeof(integer::DIGIT)); x++){
+    for(uint8_t x = 0; x < std::min(_value.size(), (integer::REP_SIZE_T) (4 / integer::OCTETS)); x++){
         out += static_cast <uint32_t> (_value[_value.size() - x - 1]) << (x * integer::BITS);
     }
     if (_sign){
@@ -163,7 +170,7 @@ integer::operator uint32_t() const{
 
 integer::operator uint64_t() const{
     uint64_t out = 0;
-    for(uint8_t x = 0; x < std::min(_value.size(), 8 / sizeof(integer::DIGIT)); x++){
+    for(uint8_t x = 0; x < std::min(_value.size(), (integer::REP_SIZE_T) (8 / integer::OCTETS)); x++){
         out += static_cast <uint64_t> (_value[_value.size() - x - 1]) << (x * integer::BITS);
     }
     if (_sign){
@@ -223,9 +230,9 @@ integer::operator int64_t() const{
 integer integer::operator&(const integer & rhs) const{
     integer::REP out;
 
-    const unsigned int max_bits = std::max(bits(), rhs.bits());
-    const integer left  = (    _sign == integer::POSITIVE)?*this:twos_complement(max_bits);
-    const integer right = (rhs._sign == integer::POSITIVE)?rhs:rhs.twos_complement(max_bits);
+    const integer::REP_SIZE_T max_bits = std::max(bits(), rhs.bits());
+    const integer             left     = (    _sign == integer::POSITIVE)?*this:twos_complement(max_bits);
+    const integer             right    = (rhs._sign == integer::POSITIVE)?rhs:rhs.twos_complement(max_bits);
 
     // AND matching digits
     for(integer::REP::const_reverse_iterator i = left._value.rbegin(), j = right._value.rbegin(); (i != left._value.rend()) && (j != right._value.rend()); i++, j++){
@@ -239,19 +246,17 @@ integer integer::operator&(const integer & rhs) const{
         OUT = OUT.twos_complement(max_bits);
     }
 
-    return OUT;
+    return OUT.trim();
 }
 
 integer & integer::operator&=(const integer & rhs){
-    *this = *this & rhs;
-    trim();
-    return *this;
+    return *this = *this & rhs;
 }
 
 integer integer::operator|(const integer & rhs) const{
-    const unsigned int max_bits = std::max(bits(), rhs.bits());
-    const integer left  = (    _sign == integer::POSITIVE)?*this:twos_complement(max_bits);
-    const integer right = (rhs._sign == integer::POSITIVE)?rhs:rhs.twos_complement(max_bits);
+    const integer::REP_SIZE_T max_bits = std::max(bits(), rhs.bits());
+    const integer             left     = (    _sign == integer::POSITIVE)?*this:twos_complement(max_bits);
+    const integer             right    = (rhs._sign == integer::POSITIVE)?rhs:rhs.twos_complement(max_bits);
 
     integer::REP out;
     integer::REP::const_reverse_iterator i = left._value.rbegin(), j = right._value.rbegin();
@@ -276,7 +281,7 @@ integer integer::operator|(const integer & rhs) const{
         OUT = OUT.twos_complement(max_bits);
     }
 
-    return OUT;
+    return OUT.trim();
 }
 
 integer & integer::operator|=(const integer & rhs){
@@ -284,9 +289,9 @@ integer & integer::operator|=(const integer & rhs){
 }
 
 integer integer::operator^(const integer & rhs) const{
-    const unsigned int max_bits = std::max(bits(), rhs.bits());
-    const integer left  = (   _sign  == integer::POSITIVE)?*this:twos_complement(max_bits);
-    const integer right = (rhs._sign == integer::POSITIVE)?rhs:rhs.twos_complement(max_bits);
+    const integer::REP_SIZE_T max_bits = std::max(bits(), rhs.bits());
+    const integer             left     = (    _sign == integer::POSITIVE)?*this:twos_complement(max_bits);
+    const integer             right    = (rhs._sign == integer::POSITIVE)?rhs:rhs.twos_complement(max_bits);
 
     integer::REP out;
     integer::REP::const_reverse_iterator i = left._value.rbegin(), j = right._value.rbegin();
@@ -311,7 +316,7 @@ integer integer::operator^(const integer & rhs) const{
         OUT = OUT.twos_complement(max_bits);
     }
 
-    return OUT;
+    return OUT.trim();
 }
 
 integer & integer::operator^=(const integer & rhs){
@@ -331,7 +336,7 @@ integer integer::operator~() const {
         out[i] ^= integer::NEG1;
     }
 
-    integer::DIGIT mask = HIGH_BIT;
+    INTEGER_DIGIT_T mask = HIGH_BIT;
     while (!(out[0] & mask)){
         mask >>= 1;
     }
@@ -357,31 +362,31 @@ integer integer::operator<<(const integer & shift) const{
         throw std::runtime_error("Error: Negative shift amount");
     }
 
-    const std::pair <integer, integer> qr = divmod(shift, integer::BITS);
-    const integer & quo = qr.first;         // number of zeros to add to the back
-    const integer::DIGIT rem = qr.second;   // individual bits to shift
+    const std::pair <integer, integer> qr = dm(shift, integer::BITS);
+    const integer & whole    = qr.first;               // number of zeros to add to the back
+    const INTEGER_DIGIT_T push = qr.second;            // push left by this many bits
+    const INTEGER_DIGIT_T pull = integer::BITS - push; // pull "push" bits from the right
 
     integer::REP out = _value;
 
+    out.push_front(0);                                 // extra digit for shifting into
+    out.push_back(0);                                  // extra digit for shifting from
+
     // do this part first to avoid shifting zeros
-    out.push_front(0);                      // extra digit for shifting into
-    out.push_back(0);                       // extra digit for shifting from
     for(integer::REP_SIZE_T i = 0; i < (out.size() - 1); i++){
-        out[i] = (out[i] << rem) | (out[i + 1] >> (integer::BITS - rem));
+        out[i] = (out[i] << push) | (out[i + 1] >> pull);
     }
 
-    if (!out[0]){                           // if the top digit is still 0
-        out.pop_front();                    // remove it
+    if (!out[0]){                                      // if the top digit is still 0
+        out.pop_front();                               // remove it
     }
 
-    if (!quo){                              // if there was no need for the 0 at the end
-        out.pop_back();                     // remove it
+    if (!whole){                                       // if there was no need for the 0 at the end
+        out.pop_back();                                // remove it
     }
     else{
         // push back zeros, excluding the one already there
-        for(integer i = 1; i < quo; i++){
-            out.push_back(0);
-        }
+        out.insert(out.end(), whole - 1, 0);
     }
 
     return integer(out, _sign);
@@ -401,21 +406,22 @@ integer integer::operator>>(const integer & shift) const{
         return 0;
     }
 
-    const std::pair <integer, integer> qr = divmod(shift, integer::BITS);
-    const integer & quo      = qr.first;   // number of digits to pop off
-    const integer::DIGIT rem = qr.second;  // number of bits to shift afterwards
+    const std::pair <integer, integer> qr = dm(shift, integer::BITS);
+    const integer & whole    = qr.first;               // number of digits to pop off
+    const INTEGER_DIGIT_T push = qr.second;            // push right by this many bits
+    const INTEGER_DIGIT_T pull = integer::BITS - push; // pull "push" bits from the left
 
     integer::REP out = _value;
 
     // pop off whole digits
-    for(integer i = 0; i < quo; i++){
+    for(integer i = 0; i < whole; i++){
         out.pop_back();
     }
 
-    if (rem){
-        out.push_front(0);                 // extra 0 for shifting from
+    if (push){
+        out.push_front(0);                             // extra 0 for shifting from
         for(integer::REP_SIZE_T i = 1; i < out.size(); i++){
-            out[out.size() - i] = (out[out.size() - i - 1] << (integer::BITS - rem)) | (out[out.size() - i] >> rem);
+            out[out.size() - i] = (out[out.size() - i - 1] << pull) | (out[out.size() - i] >> push);
         }
         out.pop_front();
     }
@@ -528,25 +534,25 @@ integer integer::add(const integer & lhs, const integer & rhs) const{
     integer::REP out;
     integer::REP::const_reverse_iterator i = lhs._value.rbegin(), j = rhs._value.rbegin();
     bool carry = false;
-    integer::DOUBLE_DIGIT sum;
+    INTEGER_DOUBLE_DIGIT_T sum;
 
     // add up matching digits
     for(; ((i != lhs._value.rend()) && (j != rhs._value.rend())); i++, j++){
-        sum = static_cast <integer::DOUBLE_DIGIT> (*i) + static_cast <integer::DOUBLE_DIGIT> (*j) + carry;
+        sum = static_cast <INTEGER_DOUBLE_DIGIT_T> (*i) + static_cast <INTEGER_DOUBLE_DIGIT_T> (*j) + carry;
         out.push_front(sum);
         carry = (sum > integer::NEG1);
     }
 
     // copy in lhs extra digits
     for(; i != lhs._value.rend(); i++){
-        sum = static_cast <integer::DOUBLE_DIGIT> (*i) + carry;
+        sum = static_cast <INTEGER_DOUBLE_DIGIT_T> (*i) + carry;
         out.push_front(sum);
         carry = (sum > integer::NEG1);
     }
 
     // copy in rhs extra digits
     for(; j != rhs._value.rend(); j++){
-        sum = static_cast <integer::DOUBLE_DIGIT> (*j) + carry;
+        sum = static_cast <INTEGER_DOUBLE_DIGIT_T> (*j) + carry;
         out.push_front(sum);
         carry = (sum > integer::NEG1);
     }
@@ -608,22 +614,27 @@ integer integer::long_sub(const integer & lhs, const integer & rhs) const{
     integer out = lhs;
     integer::REP_SIZE_T lsize = out._value.size() - 1;
     integer::REP_SIZE_T rsize = rhs._value.size() - 1;
-    for(integer::REP_SIZE_T x = 0; x < rsize + 1; x++){
-        // if rhs digit is smaller than lhs digit, subtract
-        if (rhs._value[rsize - x] <= out._value[lsize - x]){
+
+    for(integer::REP_SIZE_T x = 0; x <= rsize; x++){
+        // if top is bigger than or equal to the bottom, just substract
+        if (out._value[lsize - x] >= rhs._value[rsize - x]){
             out._value[lsize - x] -= rhs._value[rsize - x];
         }
-        else{// carry
+        else{// find a higher digit to carry from
             integer::REP_SIZE_T y = lsize - x - 1;
+            // if this goes out of bounds, something is wrong
             while (!out._value[y]){
                 y--;
             }
+
             out._value[y]--;
             y++;
+
             for(; y < lsize - x; y++){
                 out._value[y] = integer::NEG1;
             }
-            out._value[y] = static_cast <integer::DOUBLE_DIGIT> (out._value[y]) + (static_cast <uint64_t> (1) << integer::BITS) - rhs._value[rsize - x];
+
+            out._value[y] = static_cast <INTEGER_DOUBLE_DIGIT_T> (out._value[y]) + (static_cast <uint64_t> (1) << integer::BITS) - rhs._value[rsize - x];
         }
     }
     return out;
@@ -654,10 +665,10 @@ integer integer::sub(const integer & lhs, const integer & rhs) const{
 integer integer::operator-(const integer & rhs) const{
     integer out = *this;
     if (gt(out, rhs)){                                  // if lhs > rhs
-        if (_sign == rhs._sign){                        // same signs
+        if (out._sign == rhs._sign){                    // same signs
             out = sub(out, rhs);
         }
-        else if (_sign != rhs._sign){                   // different signs
+        else if (out._sign != rhs._sign){               // different signs
             out = add(out, rhs);
         }
         out._sign = _sign;                              // lhs sign dominates
@@ -680,7 +691,7 @@ integer integer::operator-(const integer & rhs) const{
         }
         else if (    (_sign == integer::POSITIVE) &&    // + - +
                  (rhs._sign == integer::POSITIVE)){
-            out = sub(out, rhs);
+            out = sub(rhs, out);
             out._sign = integer::NEGATIVE;
         }
     }
@@ -818,9 +829,9 @@ integer & integer::operator-=(const integer & rhs){
    // integer row, out = 0;
    // for(integer::REP::const_reverse_iterator i = lhs._value.rbegin(); i != lhs._value.rend(); i++){
        // row._value = integer::REP(zeros++, 0); // zeros on the right hand side
-       // integer::DIGIT carry = 0;
+       // INTEGER_DIGIT_T carry = 0;
        // for(integer::REP::const_reverse_iterator j = rhs._value.rbegin(); j != rhs._value.rend(); j++){
-           // integer::DOUBLE_DIGIT prod = (integer::DOUBLE_DIGIT) *i * (integer::DOUBLE_DIGIT) *j + carry;// multiply through
+           // INTEGER_DOUBLE_DIGIT_T prod = (INTEGER_DOUBLE_DIGIT_T) *i * (INTEGER_DOUBLE_DIGIT_T) *j + carry;// multiply through
            // row._value.push_front(prod & integer::NEG1);
            // carry = prod >> integer::BITS;
        // }
@@ -958,7 +969,7 @@ integer integer::fft_mult(const integer& lhs, const integer& rhs) const{
           else {
                carry = 0;
           }
-          out._value.push_front(integer::DIGIT(current+0.0001));
+          out._value.push_front(INTEGER_DIGIT_T(current+0.0001));
      }
 
      //Finish up
@@ -1059,8 +1070,8 @@ std::pair <integer, integer> integer::non_recursive_divmod(const integer & lhs, 
         }
 
         if (qr.second >= rhs){
-           qr.second -= rhs;
-           qr.first++;
+            qr.second -= rhs;
+            qr.first++;
         }
     }
     return qr;
@@ -1072,30 +1083,21 @@ std::pair <integer, integer> integer::dm(const integer & lhs, const integer & rh
         throw std::runtime_error("Error: division or modulus by 0");
     }
 
-    std::pair <integer, integer> out;
     if (rhs == 1){          // divide by 1 check
-        out.first = lhs;
-        out.second = 0;
-        return out;
+        return {lhs, 0};
     }
-    if (lhs == rhs){        // divide by same _value check
-        out.first = 1;
-        out.second = 0;
-        return out;
+    if (lhs == rhs){        // divide by same value check
+        return {1, 0};
     }
     if (!lhs){              // 0 / rhs check
-        out.first = 0;
-        out.second = 0;
-        return out;
+        return {0, 0};
     }
     if (lt(lhs, rhs)){      // lhs < rhs check
-        out.first = 0;
-        out.second = lhs;
-        return out;
+        return {0, lhs};
     }
 
-    // return naive_div(lhs, rhs);
-    // return long_div(lhs, rhs);
+    // return naive_divmod(lhs, rhs);
+    // return long_divmod(lhs, rhs);
     // return recursive_divmod(lhs, rhs);
     return non_recursive_divmod(lhs, rhs);
 }
@@ -1105,24 +1107,27 @@ std::pair <integer, integer> integer::divmod(const integer & lhs, const integer 
     std::pair <integer, integer> out = dm(abs(lhs), abs(rhs));
     out.first._sign = lhs._sign ^ rhs._sign;
 
-    if (out.second){
-        if      ((lhs._sign == integer::POSITIVE) &&
-                 (rhs._sign == integer::POSITIVE)){
-            // out.second = out.second;
-        }
-        else if ((lhs._sign == integer::POSITIVE) &&
-                 (rhs._sign == integer::NEGATIVE)){
-            out.second = rhs + out.second;
-        }
-        else if ((lhs._sign == integer::NEGATIVE) &&
-                 (rhs._sign == integer::POSITIVE)){
-            out.second = rhs - out.second;
-        }
-        else if ((lhs._sign == integer::NEGATIVE) &&
-                 (rhs._sign == integer::NEGATIVE)){
-            out.second = -out.second;
-        }
+    if (lhs._sign == integer::NEGATIVE){
+        out.second = -out.second;
     }
+
+    // if      ((lhs._sign == integer::POSITIVE) &&    // + % +
+             // (rhs._sign == integer::POSITIVE)){
+        // // out.second = out.second;
+    // }
+    // else if ((lhs._sign == integer::POSITIVE) &&    // + % -
+             // (rhs._sign == integer::NEGATIVE)){
+        // // out.second = out.second;
+    // }
+    // else if ((lhs._sign == integer::NEGATIVE) &&    // - % +
+             // (rhs._sign == integer::POSITIVE)){
+        // out.second = -out.second;
+    // }
+    // else if ((lhs._sign == integer::NEGATIVE) &&    // - % -
+             // (rhs._sign == integer::NEGATIVE)){
+        // out.second = -out.second;
+    // }
+
     return out;
 }
 
@@ -1173,11 +1178,7 @@ integer integer::operator+() const{
 
 // Flip Sign
 integer integer::operator-() const{
-    integer out = *this;
-    if (out._value.size()){
-        out._sign = !out._sign;
-    }
-    return out;
+    return integer(_value, !_sign);
 }
 
 // get private values
@@ -1190,8 +1191,8 @@ integer::REP_SIZE_T integer::bits() const{
     if (_value.empty()){
         return 0;
     }
-    unsigned int out = _value.size() * integer::BITS;
-    integer::DIGIT mask = HIGH_BIT;
+    integer::REP_SIZE_T out = _value.size() * integer::BITS;
+    INTEGER_DIGIT_T mask = HIGH_BIT;
     while (!(_value[0] & mask)){
         out--;
         mask >>= 1;
@@ -1215,20 +1216,25 @@ integer::REP integer::data() const{
 }
 
 // Miscellaneous Functions
+integer & integer::negate(){
+    _sign = !_sign;
+    return trim();
+}
+
 integer integer::twos_complement(unsigned int b) const{
-    const integer mask = (integer(1) << b) - 1;
+    integer mask; mask.fill(b);
     integer out = ((abs(*this) ^ mask) + 1) & mask;
     out._sign = !_sign;
-    out.trim();
-    return out;
+    return out.trim();
 }
 
 // fills an integer with 1s
-void integer::fill(const uint64_t & b){
+integer & integer::fill(const uint64_t & b){
     _value = integer::REP(b / integer::BITS, integer::NEG1);
     if (b % integer::BITS){
         _value.push_front((1 << (b % integer::BITS)) - 1);
     }
+    return *this;
 }
 
 // get bit, where 0 is the lsb and bits() - 1 is the msb

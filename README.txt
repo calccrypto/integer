@@ -30,7 +30,7 @@ with a bool that says the value is negative.
 NOTE: C++11 is required. If using GCC, the earliest version
       that can support the C++11 functions used is 4.7.
 
-Note: Conversions for bases [2, 16] and 256 are provided.
+Note: Conversions for bases [2, 10], 16, and 256 are provided.
       If others are required, add the conversions to
       integer::integer(Iterator, const Iterator&, const uint16_t &)
       and
