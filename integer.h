@@ -3,7 +3,7 @@ integer.h
 
 The MIT License (MIT)
 
-Copyright (c) 2013, 2014 Jason Lee
+Copyright (c) 2013 - 2017 Jason Lee @ calccrypto at gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,9 @@ THE SOFTWARE.
 #include <cstdint>
 #include <deque>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
+#include <type_traits>
 
 #ifndef M_PI
 #define M_PI 3.14159265359
@@ -39,29 +41,44 @@ THE SOFTWARE.
 
 class integer{
     public:
-        typedef uint8_t                           DIGIT;            // Should be unsigned integer type. Change bitsize to reduce wasted bits/increase speed
-        typedef uint64_t                          DOUBLE_DIGIT;     // sizeof(DOUBLE_DIGIT) must be larger than sizeof(DIGIT)
+        typedef uint8_t                 DIGIT;                                  // Should be unsigned integer type. Change bitsize to reduce wasted bits/increase speed
+        typedef uint64_t                DOUBLE_DIGIT;                           // sizeof(DOUBLE_DIGIT) must be larger than sizeof(DIGIT)
 
-        typedef std::deque <DIGIT>                REP;              // internal representation of values
-        typedef REP::size_type                    REP_SIZE_T;       // size type of internal representation
+        typedef std::deque <DIGIT>      REP;                                    // internal representation of values
+        typedef REP::size_type          REP_SIZE_T;                             // size type of internal representation
+
+        static_assert(std::is_unsigned <DIGIT>::value        &&                 // DIGIT has to be an unsigned integral type
+                      std::is_unsigned <DOUBLE_DIGIT>::value &&                 // DOUBLE_DIGIT has to be an unsigned integral type
+                      sizeof(DIGIT) <= (2 * sizeof(DOUBLE_DIGIT))               // DOUBLE_DIGIT should be at least 2 times the size of DIGIT
+                      , "Internal types must be integral");
 
     private:
-        static constexpr DIGIT NEG1 = -1;                           // value with all bits ON - will only work for unsigned integer types, where -1 == 111...1
-        static constexpr DIGIT OCTETS = sizeof(DIGIT);              // number of octets per DIGIT
-        static constexpr DIGIT BITS = OCTETS << 3;                  // number of bits per DIGIT; hardcode this if DIGIT is not standard int type
-        static constexpr DIGIT HIGH_BIT = 1 << (BITS - 1);          // highest bit of DIGIT (uint8_t -> 128)
-        static const std::string B16;                               // string to get characters from when printing out value
+        static constexpr DIGIT NEG1     = std::numeric_limits <DIGIT>::max();   // value with all bits ON - will only work for unsigned integer types
+        static constexpr DIGIT OCTETS   = sizeof(DIGIT);                        // number of octets per DIGIT
+        static constexpr DIGIT BITS     = OCTETS << 3;                          // number of bits per DIGIT; hardcode this if DIGIT is not standard int type
+        static constexpr DIGIT HIGH_BIT = 1 << (BITS - 1);                      // highest bit of DIGIT (uint8_t -> 128)
 
+    public:
+        typedef bool Sign;
+        static constexpr Sign POSITIVE = false;                                 // includes 0
+        static constexpr Sign NEGATIVE = true;
+
+    private:
         // Member variables
-        bool _sign;                                                 // false = positive, true = negative
-        REP _value;                                                 // holds the actual _value in REP
+        bool _sign;
+        REP _value;                                                             // holds the actual _value in REP
 
-        template <typename Z> void setFromZ(Z val, const uint16_t & bits){
+        template <typename Z>
+        void setFromZ(Z val){
+            static_assert( std::is_integral  <Z>::value &&
+                          !std::is_const     <Z>::value &&
+                          !std::is_reference <Z>::value
+                          , "Input to integer::setFromZ should be passed by value");
             _value.clear();
-            _sign = false;
+            _sign = POSITIVE;
 
             if (val < 0){
-                _sign = true;
+                _sign = NEGATIVE;
                 val = -val;
             }
 
@@ -73,24 +90,26 @@ class integer{
             trim();
         }
 
-        void trim();                                                // remove 0 digits from top of deque to save memory
+        // remove 0 digits from top of deque to save memory
+        void trim();
 
     public:
         // Constructors
         integer();
-        integer(const REP & rhs, const bool & sign = false);
         integer(const integer & rhs);
+        integer(integer && rhs);
+        integer(const REP & rhs, const Sign & sign = POSITIVE);
 
         // Constructors for Numerical Input
-        integer(const bool & b);
-        integer(const uint8_t & val);
+        integer(const bool     & b);
+        integer(const uint8_t  & val);
         integer(const uint16_t & val);
         integer(const uint32_t & val);
         integer(const uint64_t & val);
-        integer(const int8_t & val);
-        integer(const int16_t & val);
-        integer(const int32_t & val);
-        integer(const int64_t & val);
+        integer(const int8_t   & val);
+        integer(const int16_t  & val);
+        integer(const int32_t  & val);
+        integer(const int64_t  & val);
 
         // Special Constructor for Strings
         integer(const std::string & val, const uint16_t & base);
@@ -103,8 +122,7 @@ class integer{
         //      Written by Corbin
         //      Modified by me
         //
-        template <typename Iterator> integer(Iterator start, const Iterator& end, const uint16_t & base) : integer() {
-            bool s = false;
+        template <typename Iterator> integer(Iterator start, const Iterator & end, const uint16_t & base) : integer() {
             if (start == end){
                 return;
             }
@@ -120,20 +138,17 @@ class integer{
             }
             else if (base == 16){
                 while (start != end){
-                    if (std::isxdigit(*start) || std::isalpha(*start)){
+                    if (std::isxdigit(*start)){
                         *this <<= 4;
                         if (std::isdigit(*start)){
-                            *this |= *start - '0';                  //0-9
+                            *this |= *start - '0';                      // 0-9
                         }
-                        else if (std::islower(*start)){
-                            *this |= 10 + (*start - 'a');           //a-f
-                        }
-                        else if (std::isupper(*start)){
-                            *this |= 10 + (*start - 'A');           //A-F
+                        else {
+                            *this |= 10 + (std::tolower(*start) - 'a'); // a-f
                         }
                     }
                     else{
-                        throw std::runtime_error("Error: Non-alphanumeric character found");
+                        throw std::runtime_error(std::string("Error: Non-hexadecimal character found: '") + *start + "'");
                     }
                     ++start;
                 }
@@ -145,10 +160,9 @@ class integer{
                 }
             }
             else{
-                throw std::runtime_error("Error: Bad base provided: " + integer(base).str());
+                throw std::runtime_error("Error: Cannot convert from base " + std::to_string(base));
             }
 
-            _sign = s;
             trim();
         }
 
@@ -156,169 +170,132 @@ class integer{
         //  RHS input args only
 
         // Assignment Operator
-        const integer & operator=(const integer & rhs);
-        const integer & operator=(const bool & rhs);
-        const integer & operator=(const uint8_t & rhs);
-        const integer & operator=(const uint16_t & rhs);
-        const integer & operator=(const uint32_t & rhs);
-        const integer & operator=(const uint64_t & rhs);
-        const integer & operator=(const int8_t & rhs);
-        const integer & operator=(const int16_t & rhs);
-        const integer & operator=(const int32_t & rhs);
-        const integer & operator=(const int64_t & rhs);
+        integer & operator=(const integer & rhs);
+        integer & operator=(integer && rhs);
+        template <typename Z>
+        integer & operator=(const Z & rhs){
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            setFromZ(rhs);
+            return *this;
+        }
 
         // Typecast Operators
-        operator bool() const;
-        operator uint8_t() const;
+        operator bool()     const;
+        operator uint8_t()  const;
         operator uint16_t() const;
         operator uint32_t() const;
         operator uint64_t() const;
-        operator int8_t() const;
-        operator int16_t() const;
-        operator int32_t() const;
-        operator int64_t() const;
+        operator int8_t()   const;
+        operator int16_t()  const;
+        operator int32_t()  const;
+        operator int64_t()  const;
 
         // Bitwise Operators
         integer operator&(const integer & rhs) const;
-            integer operator&(const bool & rhs) const;
-            integer operator&(const uint8_t & rhs) const;
-            integer operator&(const uint16_t & rhs) const;
-            integer operator&(const uint32_t & rhs) const;
-            integer operator&(const uint64_t & rhs) const;
-            integer operator&(const int8_t & rhs) const;
-            integer operator&(const int16_t & rhs) const;
-            integer operator&(const int32_t & rhs) const;
-            integer operator&(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator&(const Z & rhs)       const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this & integer(rhs);
+        }
 
-        integer operator&=(const integer & rhs);
-            integer operator&=(const bool & rhs);
-            integer operator&=(const uint8_t & rhs);
-            integer operator&=(const uint16_t & rhs);
-            integer operator&=(const uint32_t & rhs);
-            integer operator&=(const uint64_t & rhs);
-            integer operator&=(const int8_t & rhs);
-            integer operator&=(const int16_t & rhs);
-            integer operator&=(const int32_t & rhs);
-            integer operator&=(const int64_t & rhs);
+        integer & operator&=(const integer & rhs);
+        template <typename Z>
+        integer & operator&=(const Z & rhs){
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this &= integer(rhs);
+        }
 
         integer operator|(const integer & rhs) const;
-            integer operator|(const bool & rhs) const;
-            integer operator|(const uint8_t & rhs) const;
-            integer operator|(const uint16_t & rhs) const;
-            integer operator|(const uint32_t & rhs) const;
-            integer operator|(const uint64_t & rhs) const;
-            integer operator|(const int8_t & rhs) const;
-            integer operator|(const int16_t & rhs) const;
-            integer operator|(const int32_t & rhs) const;
-            integer operator|(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator|(const Z & rhs)       const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this | integer(rhs);
+        }
 
-        integer operator|=(const integer & rhs);
-            integer operator|=(const bool & rhs);
-            integer operator|=(const uint8_t & rhs);
-            integer operator|=(const uint16_t & rhs);
-            integer operator|=(const uint32_t & rhs);
-            integer operator|=(const uint64_t & rhs);
-            integer operator|=(const int8_t & rhs);
-            integer operator|=(const int16_t & rhs);
-            integer operator|=(const int32_t & rhs);
-            integer operator|=(const int64_t & rhs);
+        integer & operator|=(const integer & rhs);
+        template <typename Z>
+        integer & operator|=(const Z & rhs){
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this |= integer(rhs);
+        }
 
         integer operator^(const integer & rhs) const;
-            integer operator^(const bool & rhs) const;
-            integer operator^(const uint8_t & rhs) const;
-            integer operator^(const uint16_t & rhs) const;
-            integer operator^(const uint32_t & rhs) const;
-            integer operator^(const uint64_t & rhs) const;
-            integer operator^(const int8_t & rhs) const;
-            integer operator^(const int16_t & rhs) const;
-            integer operator^(const int32_t & rhs) const;
-            integer operator^(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator^(const Z & rhs)       const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this ^ integer(rhs);
+        }
 
-        integer operator^=(const integer & rhs);
-            integer operator^=(const bool & rhs);
-            integer operator^=(const uint8_t & rhs);
-            integer operator^=(const uint16_t & rhs);
-            integer operator^=(const uint32_t & rhs);
-            integer operator^=(const uint64_t & rhs);
-            integer operator^=(const int8_t & rhs);
-            integer operator^=(const int16_t & rhs);
-            integer operator^=(const int32_t & rhs);
-            integer operator^=(const int64_t & rhs);
+        integer & operator^=(const integer & rhs);
+        template <typename Z>
+        integer & operator^=(const Z & rhs){
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this ^= integer(rhs);
+        }
 
-        integer operator~();
+        integer operator~() const;
 
         // Bitshift Operators
         // left bitshift. sign is maintained
         integer operator<<(const integer & shift) const;
-            integer operator<<(const bool & rhs) const;
-            integer operator<<(const uint8_t & rhs) const;
-            integer operator<<(const uint16_t & rhs) const;
-            integer operator<<(const uint32_t & rhs) const;
-            integer operator<<(const uint64_t & rhs) const;
-            integer operator<<(const int8_t & rhs) const;
-            integer operator<<(const int16_t & rhs) const;
-            integer operator<<(const int32_t & rhs) const;
-            integer operator<<(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator<<(const Z & rhs)         const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this << integer(rhs);
+        }
 
-        integer operator<<=(const integer & shift);
-            integer operator<<=(const bool & rhs);
-            integer operator<<=(const uint8_t & rhs);
-            integer operator<<=(const uint16_t & rhs);
-            integer operator<<=(const uint32_t & rhs);
-            integer operator<<=(const uint64_t & rhs);
-            integer operator<<=(const int8_t & rhs);
-            integer operator<<=(const int16_t & rhs);
-            integer operator<<=(const int32_t & rhs);
-            integer operator<<=(const int64_t & rhs);
+        integer & operator<<=(const integer & shift);
+        template <typename Z>
+        integer & operator<<=(const Z & rhs){
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this <<= integer(rhs);
+        }
 
         // right bitshift. sign is maintained
         integer operator>>(const integer & shift) const;
-            integer operator>>(const bool & rhs) const;
-            integer operator>>(const uint8_t & rhs) const;
-            integer operator>>(const uint16_t & rhs) const;
-            integer operator>>(const uint32_t & rhs) const;
-            integer operator>>(const uint64_t & rhs) const;
-            integer operator>>(const int8_t & rhs) const;
-            integer operator>>(const int16_t & rhs) const;
-            integer operator>>(const int32_t & rhs) const;
-            integer operator>>(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator>>(const Z & rhs)         const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this >> integer(rhs);
+        }
 
-        integer operator>>=(const integer & shift);
-            integer operator>>=(const bool & rhs);
-            integer operator>>=(const uint8_t & rhs);
-            integer operator>>=(const uint16_t & rhs);
-            integer operator>>=(const uint32_t & rhs);
-            integer operator>>=(const uint64_t & rhs);
-            integer operator>>=(const int8_t & rhs);
-            integer operator>>=(const int16_t & rhs);
-            integer operator>>=(const int32_t & rhs);
-            integer operator>>=(const int64_t & rhs);
+        integer & operator>>=(const integer & shift);
+        template <typename Z>
+        integer & operator>>=(const Z & rhs){
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this >>= integer(rhs);
+        }
 
         // Logical Operators
         bool operator!();
 
         // Comparison Operators
         bool operator==(const integer & rhs) const;
-            bool operator==(const bool & rhs) const;
-            bool operator==(const uint8_t & rhs) const;
-            bool operator==(const uint16_t & rhs) const;
-            bool operator==(const uint32_t & rhs) const;
-            bool operator==(const uint64_t & rhs) const;
-            bool operator==(const int8_t & rhs) const;
-            bool operator==(const int16_t & rhs) const;
-            bool operator==(const int32_t & rhs) const;
-            bool operator==(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator==(const Z & rhs)    const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return (*this == integer(rhs));
+        }
 
         bool operator!=(const integer & rhs) const;
-            bool operator!=(const bool & rhs) const;
-            bool operator!=(const uint8_t & rhs) const;
-            bool operator!=(const uint16_t & rhs) const;
-            bool operator!=(const uint32_t & rhs) const;
-            bool operator!=(const uint64_t & rhs) const;
-            bool operator!=(const int8_t & rhs) const;
-            bool operator!=(const int16_t & rhs) const;
-            bool operator!=(const int32_t & rhs) const;
-            bool operator!=(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator!=(const Z & rhs)    const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return (*this != integer(rhs));
+        }
 
     private:
         // operator> not considering signs
@@ -326,26 +303,20 @@ class integer{
 
     public:
         bool operator>(const integer & rhs) const;
-            bool operator>(const bool & rhs) const;
-            bool operator>(const uint8_t & rhs) const;
-            bool operator>(const uint16_t & rhs) const;
-            bool operator>(const uint32_t & rhs) const;
-            bool operator>(const uint64_t & rhs) const;
-            bool operator>(const int8_t & rhs) const;
-            bool operator>(const int16_t & rhs) const;
-            bool operator>(const int32_t & rhs) const;
-            bool operator>(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator>(const Z & rhs)    const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return (*this > integer(rhs));
+        }
 
         bool operator>=(const integer & rhs) const;
-            bool operator>=(const bool & rhs) const;
-            bool operator>=(const uint8_t & rhs) const;
-            bool operator>=(const uint16_t & rhs) const;
-            bool operator>=(const uint32_t & rhs) const;
-            bool operator>=(const uint64_t & rhs) const;
-            bool operator>=(const int8_t & rhs) const;
-            bool operator>=(const int16_t & rhs) const;
-            bool operator>=(const int32_t & rhs) const;
-            bool operator>=(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator>=(const Z & rhs)    const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return (*this >= integer(rhs));
+        }
 
     private:
         // operator< not considering signs
@@ -353,26 +324,20 @@ class integer{
 
     public:
         bool operator<(const integer & rhs) const;
-            bool operator<(const bool & rhs) const;
-            bool operator<(const uint8_t & rhs) const;
-            bool operator<(const uint16_t & rhs) const;
-            bool operator<(const uint32_t & rhs) const;
-            bool operator<(const uint64_t & rhs) const;
-            bool operator<(const int8_t & rhs) const;
-            bool operator<(const int16_t & rhs) const;
-            bool operator<(const int32_t & rhs) const;
-            bool operator<(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator<(const Z & rhs)    const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return (*this < integer(rhs));
+        }
 
         bool operator<=(const integer & rhs) const;
-            bool operator<=(const bool & rhs) const;
-            bool operator<=(const uint8_t & rhs) const;
-            bool operator<=(const uint16_t & rhs) const;
-            bool operator<=(const uint32_t & rhs) const;
-            bool operator<=(const uint64_t & rhs) const;
-            bool operator<=(const int8_t & rhs) const;
-            bool operator<=(const int16_t & rhs) const;
-            bool operator<=(const int32_t & rhs) const;
-            bool operator<=(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator<=(const Z & rhs)    const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return (*this <= integer(rhs));
+        }
 
     private:
         // Arithmetic Operators
@@ -380,26 +345,20 @@ class integer{
 
     public:
         integer operator+(const integer & rhs) const;
-            integer operator+(const bool & rhs) const;
-            integer operator+(const uint8_t & rhs) const;
-            integer operator+(const uint16_t & rhs) const;
-            integer operator+(const uint32_t & rhs) const;
-            integer operator+(const uint64_t & rhs) const;
-            integer operator+(const int8_t & rhs) const;
-            integer operator+(const int16_t & rhs) const;
-            integer operator+(const int32_t & rhs) const;
-            integer operator+(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator+(const Z & rhs)       const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this + integer(rhs);
+        }
 
-        integer operator+=(const integer & rhs);
-            integer operator+=(const bool & rhs);
-            integer operator+=(const uint8_t & rhs);
-            integer operator+=(const uint16_t & rhs);
-            integer operator+=(const uint32_t & rhs);
-            integer operator+=(const uint64_t & rhs);
-            integer operator+=(const int8_t & rhs);
-            integer operator+=(const int16_t & rhs);
-            integer operator+=(const int32_t & rhs);
-            integer operator+=(const int64_t & rhs);
+        integer & operator+=(const integer & rhs);
+        template <typename Z>
+        integer & operator+=(const Z & rhs){
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this += integer(rhs);
+        }
 
     private:
         // Subtraction as done by hand
@@ -409,30 +368,26 @@ class integer{
         // // Two's Complement Subtraction
         // integer two_comp_sub(const integer & lhs, const integer & rhs) const;
 
+        // subtraction not considering signs
+        // lhs must be larger than rhs
         integer sub(const integer & lhs, const integer & rhs) const;
 
     public:
         integer operator-(const integer & rhs) const;
-            integer operator-(const bool & rhs) const;
-            integer operator-(const uint8_t & rhs) const;
-            integer operator-(const uint16_t & rhs) const;
-            integer operator-(const uint32_t & rhs) const;
-            integer operator-(const uint64_t & rhs) const;
-            integer operator-(const int8_t & rhs) const;
-            integer operator-(const int16_t & rhs) const;
-            integer operator-(const int32_t & rhs) const;
-            integer operator-(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator-(const Z & rhs)       const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this - integer(rhs);
+        }
 
-        integer operator-=(const integer & rhs);
-            integer operator-=(const bool & rhs);
-            integer operator-=(const uint8_t & rhs);
-            integer operator-=(const uint16_t & rhs);
-            integer operator-=(const uint32_t & rhs);
-            integer operator-=(const uint64_t & rhs);
-            integer operator-=(const int8_t & rhs);
-            integer operator-=(const int16_t & rhs);
-            integer operator-=(const int32_t & rhs);
-            integer operator-=(const int64_t & rhs);
+        integer & operator-=(const integer & rhs);
+        template <typename Z>
+        integer & operator-=(const Z & rhs){
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this -= integer(rhs);
+        }
 
     private:
         // // Peasant Multiplication
@@ -473,33 +428,28 @@ class integer{
 
     public:
         integer operator*(const integer & rhs) const;
-            integer operator*(const bool & rhs) const;
-            integer operator*(const uint8_t & rhs) const;
-            integer operator*(const uint16_t & rhs) const;
-            integer operator*(const uint32_t & rhs) const;
-            integer operator*(const uint64_t & rhs) const;
-            integer operator*(const int8_t & rhs) const;
-            integer operator*(const int16_t & rhs) const;
-            integer operator*(const int32_t & rhs) const;
-            integer operator*(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator*(const Z & rhs)       const {
+            static_assert(std::is_integral <Z>::value
 
-        integer operator*=(const integer & rhs);
-            integer operator*=(const bool & rhs);
-            integer operator*=(const uint8_t & rhs);
-            integer operator*=(const uint16_t & rhs);
-            integer operator*=(const uint32_t & rhs);
-            integer operator*=(const uint64_t & rhs);
-            integer operator*=(const int8_t & rhs);
-            integer operator*=(const int16_t & rhs);
-            integer operator*=(const int32_t & rhs);
-            integer operator*=(const int64_t & rhs);
+                          , "Typecasted type must be integral");
+            return *this * integer(rhs);
+        }
+
+        integer & operator*=(const integer & rhs);
+        template <typename Z>
+        integer & operator*=(const Z & rhs){
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this *= integer(rhs);
+        }
 
     private:
         // // Naive Division: keep subtracting until lhs == 0
-        // std::pair <integer, integer> naive_div(const integer & lhs, const integer & rhs) const;
+        // std::pair <integer, integer> naive_divmod(const integer & lhs, const integer & rhs) const;
 
         // // Long Division returning both quotient and remainder
-        // std::pair <integer, integer> long_div(const integer & lhs, const integer & rhs) const;
+        // std::pair <integer, integer> long_divmod(const integer & lhs, const integer & rhs) const;
 
         // // Recursive Division that returns both the quotient and remainder
         // // Recursion took up way too much memory
@@ -508,60 +458,51 @@ class integer{
         // Non-Recursive version of above algorithm
         std::pair <integer, integer> non_recursive_divmod(const integer & lhs, const integer & rhs) const;
 
-        // division ignoring signs
+        // division and modulus ignoring signs
         std::pair <integer, integer> dm(const integer & lhs, const integer & rhs) const;
 
     public:
-        integer operator/(const integer & rhs) const;
-            integer operator/(const bool & rhs) const;
-            integer operator/(const uint8_t & rhs) const;
-            integer operator/(const uint16_t & rhs) const;
-            integer operator/(const uint32_t & rhs) const;
-            integer operator/(const uint64_t & rhs) const;
-            integer operator/(const int8_t & rhs) const;
-            integer operator/(const int16_t & rhs) const;
-            integer operator/(const int32_t & rhs) const;
-            integer operator/(const int64_t & rhs) const;
+        // division and modulus with signs
+        std::pair <integer, integer> divmod(const integer & lhs, const integer & rhs) const;
 
-        integer operator/=(const integer & rhs);
-            integer operator/=(const bool & rhs);
-            integer operator/=(const uint8_t & rhs);
-            integer operator/=(const uint16_t & rhs);
-            integer operator/=(const uint32_t & rhs);
-            integer operator/=(const uint64_t & rhs);
-            integer operator/=(const int8_t & rhs);
-            integer operator/=(const int16_t & rhs);
-            integer operator/=(const int32_t & rhs);
-            integer operator/=(const int64_t & rhs);
+        integer operator/(const integer & rhs) const;
+        template <typename Z>
+        integer operator/(const Z & rhs)       const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this / integer(rhs);
+        }
+
+        integer & operator/=(const integer & rhs);
+        template <typename Z>
+        integer & operator/=(const Z & rhs){
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this /= integer(rhs);
+        }
 
         integer operator%(const integer & rhs) const;
-            integer operator%(const bool & rhs) const;
-            integer operator%(const uint8_t & rhs) const;
-            integer operator%(const uint16_t & rhs) const;
-            integer operator%(const uint32_t & rhs) const;
-            integer operator%(const uint64_t & rhs) const;
-            integer operator%(const int8_t & rhs) const;
-            integer operator%(const int16_t & rhs) const;
-            integer operator%(const int32_t & rhs) const;
-            integer operator%(const int64_t & rhs) const;
+        template <typename Z>
+        integer operator%(const Z & rhs)       const {
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this % integer(rhs);
+        }
 
-        integer operator%=(const integer & rhs);
-            integer operator%=(const bool & rhs);
-            integer operator%=(const uint8_t & rhs);
-            integer operator%=(const uint16_t & rhs);
-            integer operator%=(const uint32_t & rhs);
-            integer operator%=(const uint64_t & rhs);
-            integer operator%=(const int8_t & rhs);
-            integer operator%=(const int16_t & rhs);
-            integer operator%=(const int32_t & rhs);
-            integer operator%=(const int64_t & rhs);
+        integer & operator%=(const integer & rhs);
+        template <typename Z>
+        integer & operator%=(const Z & rhs){
+            static_assert(std::is_integral <Z>::value
+                          , "Typecasted type must be integral");
+            return *this %= integer(rhs);
+        }
 
         // Increment Operator
-        const integer & operator++();
+        integer & operator++();
         integer operator++(int);
 
         // Decrement Operator
-        const integer & operator--();
+        integer & operator--();
         integer operator--(int);
 
         // Nothing done since promotion doesn't work here
@@ -571,7 +512,7 @@ class integer{
         integer operator-() const;
 
         // get private values
-        bool sign() const;
+        Sign sign() const;
 
         // get number of bits
         REP_SIZE_T bits() const;
@@ -579,52 +520,15 @@ class integer{
         // get number of bytes
         REP_SIZE_T bytes() const;
 
-        // get number of digits
+        // get number of digits of internal representation
         REP_SIZE_T digits() const;
 
         // get internal data
         REP data() const;
 
         // Miscellaneous Functions
-        // Two's compliment - specify bits to make output make sense
-        integer twos_complement(unsigned int bits) const;
-
-        // returns positive _value of *this
-        integer abs() const;
-
-        // returns floor(log_b(*this))
-        template <typename Z>
-        integer log(Z b) const{
-            integer count = 0;
-            integer x = *this;
-            while (x){
-                x /= b;
-                count++;
-            }
-            return count;
-        }
-
-        // raises *this to exponent exp
-        template <typename Z>
-        integer pow(Z exp) const {
-            if (exp == 1){
-                throw std::runtime_error("Error: Log base 1");
-            }
-
-            if (exp < 0){
-                std::runtime_error("Error: Domain error");
-            }
-            integer result = 1;
-            integer base = *this;
-            while (exp){
-                if (exp & 1){
-                    result *= base;
-                }
-                exp >>= 1;
-                base *= base;
-            }
-            return result;
-        }
+        // Two's compliment - specify number of bits to make output make sense
+        integer twos_complement(unsigned int b) const;
 
         // fills an integer with 1s
         void fill(const uint64_t & b);
@@ -636,70 +540,79 @@ class integer{
         std::string str(const uint16_t & base = 10, const unsigned int & length = 1) const;
 };
 
-// lhs not of type integer
+// Give integer type traits
+namespace std{
+    template <> struct is_arithmetic <integer> : std::true_type {};
+    template <> struct is_integral   <integer> : std::true_type {};
+    template <> struct is_signed     <integer> : std::true_type {};
+};
+
+// operators where lhs is not of type integer
+
+// this is too long to put in-line
+#define NOT_INTEGER template <typename Z> typename std::remove_reference <Z>::type
 
 // Bitwise Operators
-integer operator&(const bool & lhs, const integer & rhs);
-integer operator&(const uint8_t & lhs, const integer & rhs);
-integer operator&(const uint16_t & lhs, const integer & rhs);
-integer operator&(const uint32_t & lhs, const integer & rhs);
-integer operator&(const uint64_t & lhs, const integer & rhs);
-integer operator&(const int8_t & lhs, const integer & rhs);
-integer operator&(const int16_t & lhs, const integer & rhs);
-integer operator&(const int32_t & lhs, const integer & rhs);
-integer operator&(const int64_t & lhs, const integer & rhs);
+template <typename Z>
+integer operator&(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return integer(lhs) & rhs;
+}
 
-bool operator&=(bool & lhs, const integer & rhs);
-uint8_t operator&=(uint8_t & lhs, const integer & rhs);
-uint16_t operator&=(uint16_t & lhs, const integer & rhs);
-uint32_t operator&=(uint32_t & lhs, const integer & rhs);
-uint64_t operator&=(uint64_t & lhs, const integer & rhs);
-int8_t operator&=(int8_t & lhs, const integer & rhs);
-int16_t operator&=(int16_t & lhs, const integer & rhs);
-int32_t operator&=(int32_t & lhs, const integer & rhs);
-int64_t operator&=(int64_t & lhs, const integer & rhs);
+NOT_INTEGER operator&=(Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value &&
+                 !std::is_const <Z>::value
+                  , "Typecasted type must be integral");
+    return lhs = static_cast <typename std::remove_reference <Z>::type> (integer(lhs) & rhs);
+}
 
-integer operator|(const bool & lhs, const integer & rhs);
-integer operator|(const uint8_t & lhs, const integer & rhs);
-integer operator|(const uint16_t & lhs, const integer & rhs);
-integer operator|(const uint32_t & lhs, const integer & rhs);
-integer operator|(const uint64_t & lhs, const integer & rhs);
-integer operator|(const int8_t & lhs, const integer & rhs);
-integer operator|(const int16_t & lhs, const integer & rhs);
-integer operator|(const int32_t & lhs, const integer & rhs);
-integer operator|(const int64_t & lhs, const integer & rhs);
+template <typename Z>
+integer operator|(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return integer(lhs) | rhs;
+}
 
-bool operator|=(bool & lhs, const integer & rhs);
-uint8_t operator|=(uint8_t & lhs, const integer & rhs);
-uint16_t operator|=(uint16_t & lhs, const integer & rhs);
-uint32_t operator|=(uint32_t & lhs, const integer & rhs);
-uint64_t operator|=(uint64_t & lhs, const integer & rhs);
-int8_t operator|=(int8_t & lhs, const integer & rhs);
-int16_t operator|=(int16_t & lhs, const integer & rhs);
-int32_t operator|=(int32_t & lhs, const integer & rhs);
-int64_t operator|=(int64_t & lhs, const integer & rhs);
+NOT_INTEGER operator|=(Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value &&
+                 !std::is_const <Z>::value
+                  , "Typecasted type must be integral");
+    return lhs = static_cast <typename std::remove_reference <Z>::type> (integer(lhs) | rhs);
+}
 
-integer operator^(const bool & lhs, const integer & rhs);
-integer operator^(const uint8_t & lhs, const integer & rhs);
-integer operator^(const uint16_t & lhs, const integer & rhs);
-integer operator^(const uint32_t & lhs, const integer & rhs);
-integer operator^(const uint64_t & lhs, const integer & rhs);
-integer operator^(const int8_t & lhs, const integer & rhs);
-integer operator^(const int16_t & lhs, const integer & rhs);
-integer operator^(const int32_t & lhs, const integer & rhs);
-integer operator^(const int64_t & lhs, const integer & rhs);
+template <typename Z>
+integer operator^(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return integer(lhs) ^ rhs;
+}
 
-bool operator^=(bool & lhs, const integer & rhs);
-uint8_t operator^=(uint8_t & lhs, const integer & rhs);
-uint16_t operator^=(uint16_t & lhs, const integer & rhs);
-uint32_t operator^=(uint32_t & lhs, const integer & rhs);
-uint64_t operator^=(uint64_t & lhs, const integer & rhs);
-int8_t operator^=(int8_t & lhs, const integer & rhs);
-int16_t operator^=(int16_t & lhs, const integer & rhs);
-int32_t operator^=(int32_t & lhs, const integer & rhs);
-int64_t operator^=(int64_t & lhs, const integer & rhs);
+NOT_INTEGER operator^=(Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value &&
+                 !std::is_const <Z>::value
+                  , "Typecasted type must be integral");
+    return lhs = static_cast <typename std::remove_reference <Z>::type> (integer(lhs) ^ rhs);
+}
 
 // Bitshift operators
+
+// use SFINAE
+
+// template <typename Z>
+// integer operator<<(const Z & lhs, const integer & rhs){
+    // static_assert(std::is_integral <Z>::value
+                  // , "Typecasted type must be integral");
+    // return integer(lhs) << rhs;
+// }
+
+NOT_INTEGER operator<<=(Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value &&
+                 !std::is_const <Z>::value
+                  , "Typecasted type must be integral");
+    return lhs = static_cast <typename std::remove_reference <Z>::type> (integer(lhs) << rhs);
+}
+
 integer operator<<(const bool & lhs, const integer & rhs);
 integer operator<<(const uint8_t & lhs, const integer & rhs);
 integer operator<<(const uint16_t & lhs, const integer & rhs);
@@ -709,16 +622,6 @@ integer operator<<(const int8_t & lhs, const integer & rhs);
 integer operator<<(const int16_t & lhs, const integer & rhs);
 integer operator<<(const int32_t & lhs, const integer & rhs);
 integer operator<<(const int64_t & lhs, const integer & rhs);
-
-bool operator<<=(bool & lhs, const integer & rhs);
-uint8_t operator<<=(uint8_t & lhs, const integer & rhs);
-uint16_t operator<<=(uint16_t & lhs, const integer & rhs);
-uint32_t operator<<=(uint32_t & lhs, const integer & rhs);
-uint64_t operator<<=(uint64_t & lhs, const integer & rhs);
-int8_t operator<<=(int8_t & lhs, const integer & rhs);
-int16_t operator<<=(int16_t & lhs, const integer & rhs);
-int32_t operator<<=(int32_t & lhs, const integer & rhs);
-int64_t operator<<=(int64_t & lhs, const integer & rhs);
 
 integer operator>>(const bool & lhs, const integer & rhs);
 integer operator>>(const uint8_t & lhs, const integer & rhs);
@@ -730,194 +633,175 @@ integer operator>>(const int16_t & lhs, const integer & rhs);
 integer operator>>(const int32_t & lhs, const integer & rhs);
 integer operator>>(const int64_t & lhs, const integer & rhs);
 
-bool operator>>=(bool & lhs, const integer & rhs);
-uint8_t operator>>=(uint8_t & lhs, const integer & rhs);
-uint16_t operator>>=(uint16_t & lhs, const integer & rhs);
-uint32_t operator>>=(uint32_t & lhs, const integer & rhs);
-uint64_t operator>>=(uint64_t & lhs, const integer & rhs);
-int8_t operator>>=(int8_t & lhs, const integer & rhs);
-int16_t operator>>=(int16_t & lhs, const integer & rhs);
-int32_t operator>>=(int32_t & lhs, const integer & rhs);
-int64_t operator>>=(int64_t & lhs, const integer & rhs);
+NOT_INTEGER operator>>=(Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value &&
+                 !std::is_const <Z>::value
+                  , "Typecasted type must be integral");
+    return lhs = static_cast <typename std::remove_reference <Z>::type> (integer(lhs) >> rhs);
+}
 
 // Comparison Operators
-bool operator==(bool & lhs, const integer & rhs);
-bool operator==(uint8_t & lhs, const integer & rhs);
-bool operator==(uint16_t & lhs, const integer & rhs);
-bool operator==(uint32_t & lhs, const integer & rhs);
-bool operator==(uint64_t & lhs, const integer & rhs);
-bool operator==(int8_t & lhs, const integer & rhs);
-bool operator==(int16_t & lhs, const integer & rhs);
-bool operator==(int32_t & lhs, const integer & rhs);
-bool operator==(int64_t & lhs, const integer & rhs);
+template <typename Z>
+bool operator==(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return (integer(lhs) == rhs);
+}
 
-bool operator!=(bool & lhs, const integer & rhs);
-bool operator!=(uint8_t & lhs, const integer & rhs);
-bool operator!=(uint16_t & lhs, const integer & rhs);
-bool operator!=(uint32_t & lhs, const integer & rhs);
-bool operator!=(uint64_t & lhs, const integer & rhs);
-bool operator!=(int8_t & lhs, const integer & rhs);
-bool operator!=(int16_t & lhs, const integer & rhs);
-bool operator!=(int32_t & lhs, const integer & rhs);
-bool operator!=(int64_t & lhs, const integer & rhs);
+template <typename Z>
+bool operator!=(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return (integer(lhs) != rhs);
+}
 
-bool operator>(const bool & lhs, const integer & rhs);
-bool operator>(const uint8_t & lhs, const integer & rhs);
-bool operator>(const uint16_t & lhs, const integer & rhs);
-bool operator>(const uint32_t & lhs, const integer & rhs);
-bool operator>(const uint64_t & lhs, const integer & rhs);
-bool operator>(const int8_t & lhs, const integer & rhs);
-bool operator>(const int16_t & lhs, const integer & rhs);
-bool operator>(const int32_t & lhs, const integer & rhs);
-bool operator>(const int64_t & lhs, const integer & rhs);
+template <typename Z>
+bool operator>(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return (rhs < lhs);
+}
 
-bool operator>=(bool & lhs, const integer & rhs);
-bool operator>=(uint8_t & lhs, const integer & rhs);
-bool operator>=(uint16_t & lhs, const integer & rhs);
-bool operator>=(uint32_t & lhs, const integer & rhs);
-bool operator>=(uint64_t & lhs, const integer & rhs);
-bool operator>=(int8_t & lhs, const integer & rhs);
-bool operator>=(int16_t & lhs, const integer & rhs);
-bool operator>=(int32_t & lhs, const integer & rhs);
-bool operator>=(int64_t & lhs, const integer & rhs);
+template <typename Z>
+bool operator>=(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return (rhs <= lhs);
+}
 
-bool operator<(const bool & lhs, const integer & rhs);
-bool operator<(const uint8_t & lhs, const integer & rhs);
-bool operator<(const uint16_t & lhs, const integer & rhs);
-bool operator<(const uint32_t & lhs, const integer & rhs);
-bool operator<(const uint64_t & lhs, const integer & rhs);
-bool operator<(const int8_t & lhs, const integer & rhs);
-bool operator<(const int16_t & lhs, const integer & rhs);
-bool operator<(const int32_t & lhs, const integer & rhs);
-bool operator<(const int64_t & lhs, const integer & rhs);
+template <typename Z>
+bool operator<(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return (rhs > lhs);
+}
 
-bool operator<=(bool & lhs, const integer & rhs);
-bool operator<=(uint8_t & lhs, const integer & rhs);
-bool operator<=(uint16_t & lhs, const integer & rhs);
-bool operator<=(uint32_t & lhs, const integer & rhs);
-bool operator<=(uint64_t & lhs, const integer & rhs);
-bool operator<=(int8_t & lhs, const integer & rhs);
-bool operator<=(int16_t & lhs, const integer & rhs);
-bool operator<=(int32_t & lhs, const integer & rhs);
-bool operator<=(int64_t & lhs, const integer & rhs);
+template <typename Z>
+bool operator<=(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return (rhs >= lhs);
+}
 
 // Arithmetic Operators
-integer operator+(const bool & lhs, const integer & rhs);
-integer operator+(const uint8_t & lhs, const integer & rhs);
-integer operator+(const uint16_t & lhs, const integer & rhs);
-integer operator+(const uint32_t & lhs, const integer & rhs);
-integer operator+(const uint64_t & lhs, const integer & rhs);
-integer operator+(const int8_t & lhs, const integer & rhs);
-integer operator+(const int16_t & lhs, const integer & rhs);
-integer operator+(const int32_t & lhs, const integer & rhs);
-integer operator+(const int64_t & lhs, const integer & rhs);
+template <typename Z>
+integer operator+(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return integer(lhs) + rhs;
+}
 
-bool operator+=(bool & lhs, const integer & rhs);
-uint8_t operator+=(uint8_t & lhs, const integer & rhs);
-uint16_t operator+=(uint16_t & lhs, const integer & rhs);
-uint32_t operator+=(uint32_t & lhs, const integer & rhs);
-uint64_t operator+=(uint64_t & lhs, const integer & rhs);
-int8_t operator+=(int8_t & lhs, const integer & rhs);
-int16_t operator+=(int16_t & lhs, const integer & rhs);
-int32_t operator+=(int32_t & lhs, const integer & rhs);
-int64_t operator+=(int64_t & lhs, const integer & rhs);
+NOT_INTEGER operator+=(Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value &&
+                 !std::is_const <Z>::value
+                  , "Typecasted type must be integral");
+    return lhs = static_cast <typename std::remove_reference <Z>::type> (integer(lhs) + rhs);
+}
 
-integer operator-(const bool & lhs, const integer & rhs);
-integer operator-(const uint8_t & lhs, const integer & rhs);
-integer operator-(const uint16_t & lhs, const integer & rhs);
-integer operator-(const uint32_t & lhs, const integer & rhs);
-integer operator-(const uint64_t & lhs, const integer & rhs);
-integer operator-(const int8_t & lhs, const integer & rhs);
-integer operator-(const int16_t & lhs, const integer & rhs);
-integer operator-(const int32_t & lhs, const integer & rhs);
-integer operator-(const int64_t & lhs, const integer & rhs);
+template <typename Z>
+integer operator-(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return integer(lhs) - rhs;
+}
 
-bool operator-=(bool & lhs, const integer & rhs);
-uint8_t operator-=(uint8_t & lhs, const integer & rhs);
-uint16_t operator-=(uint16_t & lhs, const integer & rhs);
-uint32_t operator-=(uint32_t & lhs, const integer & rhs);
-uint64_t operator-=(uint64_t & lhs, const integer & rhs);
-int8_t operator-=(int8_t & lhs, const integer & rhs);
-int16_t operator-=(int16_t & lhs, const integer & rhs);
-int32_t operator-=(int32_t & lhs, const integer & rhs);
-int64_t operator-=(int64_t & lhs, const integer & rhs);
+NOT_INTEGER operator-=(Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value &&
+                 !std::is_const <Z>::value
+                  , "Typecasted type must be integral");
+    return lhs = static_cast <typename std::remove_reference <Z>::type> (integer(lhs) - rhs);
+}
 
-integer operator*(const bool & lhs, const integer & rhs);
-integer operator*(const uint8_t & lhs, const integer & rhs);
-integer operator*(const uint16_t & lhs, const integer & rhs);
-integer operator*(const uint32_t & lhs, const integer & rhs);
-integer operator*(const uint64_t & lhs, const integer & rhs);
-integer operator*(const int8_t & lhs, const integer & rhs);
-integer operator*(const int16_t & lhs, const integer & rhs);
-integer operator*(const int32_t & lhs, const integer & rhs);
-integer operator*(const int64_t & lhs, const integer & rhs);
+template <typename Z>
+integer operator*(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return integer(lhs) * rhs;
+}
 
-bool operator*=(bool & lhs, const integer & rhs);
-uint8_t operator*=(uint8_t & lhs, const integer & rhs);
-uint16_t operator*=(uint16_t & lhs, const integer & rhs);
-uint32_t operator*=(uint32_t & lhs, const integer & rhs);
-uint64_t operator*=(uint64_t & lhs, const integer & rhs);
-int8_t operator*=(int8_t & lhs, const integer & rhs);
-int16_t operator*=(int16_t & lhs, const integer & rhs);
-int32_t operator*=(int32_t & lhs, const integer & rhs);
-int64_t operator*=(int64_t & lhs, const integer & rhs);
+NOT_INTEGER operator*=(Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value &&
+                 !std::is_const <Z>::value
+                  , "Typecasted type must be integral");
+    return lhs = static_cast <typename std::remove_reference <Z>::type> (integer(lhs) * rhs);
+}
 
-integer operator/(const bool & lhs, const integer & rhs);
-integer operator/(const uint8_t & lhs, const integer & rhs);
-integer operator/(const uint16_t & lhs, const integer & rhs);
-integer operator/(const uint32_t & lhs, const integer & rhs);
-integer operator/(const uint64_t & lhs, const integer & rhs);
-integer operator/(const int8_t & lhs, const integer & rhs);
-integer operator/(const int16_t & lhs, const integer & rhs);
-integer operator/(const int32_t & lhs, const integer & rhs);
-integer operator/(const int64_t & lhs, const integer & rhs);
+template <typename Z>
+integer operator/(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return integer(lhs) / rhs;
+}
 
-bool operator/=(bool & lhs, const integer & rhs);
-uint8_t operator/=(uint8_t & lhs, const integer & rhs);
-uint16_t operator/=(uint16_t & lhs, const integer & rhs);
-uint32_t operator/=(uint32_t & lhs, const integer & rhs);
-uint64_t operator/=(uint64_t & lhs, const integer & rhs);
-int8_t operator/=(int8_t & lhs, const integer & rhs);
-int16_t operator/=(int16_t & lhs, const integer & rhs);
-int32_t operator/=(int32_t & lhs, const integer & rhs);
-int64_t operator/=(int64_t & lhs, const integer & rhs);
+NOT_INTEGER operator/=(Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value &&
+                 !std::is_const <Z>::value
+                  , "Typecasted type must be integral");
+    return lhs = static_cast <typename std::remove_reference <Z>::type> (integer(lhs) / rhs);
+}
 
-integer operator%(const bool & lhs, const integer & rhs);
-integer operator%(const uint8_t & lhs, const integer & rhs);
-integer operator%(const uint16_t & lhs, const integer & rhs);
-integer operator%(const uint32_t & lhs, const integer & rhs);
-integer operator%(const uint64_t & lhs, const integer & rhs);
-integer operator%(const int8_t & lhs, const integer & rhs);
-integer operator%(const int16_t & lhs, const integer & rhs);
-integer operator%(const int32_t & lhs, const integer & rhs);
-integer operator%(const int64_t & lhs, const integer & rhs);
+template <typename Z>
+integer operator%(const Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value
+                  , "Typecasted type must be integral");
+    return integer(lhs) % rhs;
+}
 
-bool operator%=(bool & lhs, const integer & rhs);
-uint8_t operator%=(uint8_t & lhs, const integer & rhs);
-uint16_t operator%=(uint16_t & lhs, const integer & rhs);
-uint32_t operator%=(uint32_t & lhs, const integer & rhs);
-uint64_t operator%=(uint64_t & lhs, const integer & rhs);
-int8_t operator%=(int8_t & lhs, const integer & rhs);
-int16_t operator%=(int16_t & lhs, const integer & rhs);
-int32_t operator%=(int32_t & lhs, const integer & rhs);
-int64_t operator%=(int64_t & lhs, const integer & rhs);
+NOT_INTEGER operator%=(Z & lhs, const integer & rhs){
+    static_assert(std::is_integral <Z>::value &&
+                 !std::is_const <Z>::value
+                  , "Typecasted type must be integral");
+    return lhs = static_cast <typename std::remove_reference <Z>::type> (integer(lhs) % rhs);
+}
 
 // IO Operators
 std::ostream & operator<<(std::ostream & stream, const integer & rhs);
 std::istream & operator>>(std::istream & stream, integer & rhs);
 
-// Special functions
-std::string makebin(const integer & value, const unsigned int & size = 1);
-std::string makehex(const integer & value, const unsigned int & size = 1);
+// Miscellaneous functions
+std::string makebin  (const integer & value, const unsigned int & size = 1);
+std::string makehex  (const integer & value, const unsigned int & size = 1);
 std::string makeascii(const integer & value, const unsigned int & size = 1);
+
 integer abs(const integer & value);
 
-template <typename Z> integer log(integer x, Z REP){
-    return x.log(REP);
+// floor(log_b(x))
+template <typename Z>
+integer log(integer value, Z base){
+    static_assert(std::is_integral <Z>::value
+                  , "Base type should be a non-negative integer");
+
+    if ((base < 1) || (value <= 0)){
+        throw std::domain_error("Error: Domain error");
+    }
+
+    integer count = 0;
+    while (value){
+        value /= base;
+        count++;
+    }
+    return count;
 }
 
-template <typename Z> integer pow(integer REP, Z exp){
-    return REP.pow(exp);
+template <typename Z>
+integer pow(integer value, Z exp){
+    static_assert(std::is_integral <Z>::value
+                  , "Exponent type should be integral");
+
+    if (exp < 0){
+        return 0;
+    }
+
+    integer result = 1;
+    while (exp){
+        if (exp & 1){
+            result *= value;
+        }
+        exp >>= 1;
+        value *= value;
+    }
+
+    return result;
 }
 
 #endif // INTEGER_H

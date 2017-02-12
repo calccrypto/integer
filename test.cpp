@@ -3,7 +3,7 @@ Simple test program for integer
 
 The MIT License (MIT)
 
-Copyright (c) 2013, 2014 Jason Lee
+Copyright (c) 2013 - 2017 Jason Lee @ calccrypto at gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

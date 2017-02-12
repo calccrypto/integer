@@ -30,6 +30,17 @@ with a bool that says the value is negative.
 NOTE: C++11 is required. If using GCC, the earliest version
       that can support the C++11 functions used is 4.7.
 
+Note: Conversions for bases [2, 16] and 256 are provided.
+      If others are required, add the conversions to
+      integer::integer(Iterator, const Iterator&, const uint16_t &)
+      and
+      std::string integer::str(const uint16_t &, const unsigned int &) const;
+
+NOTE: String inputs should not have markers indicating their base,
+      such as "0x" or "0b".
+
+NOTE: Hexadecimal strings use lowercase characters.
+
 NOTE: Base256 strings are assumed to be positive when read into
       integer. Use operator-() to negate the value.
 
