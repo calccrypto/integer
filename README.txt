@@ -4,6 +4,8 @@ by Jason Lee @ calccrypto at gmail.com
 
 Please see LICENSE file for license.
 
+[![Build Status](https://travis-ci.org/calccrypto/integer.svg?branch=master)](https://travis-ci.org/calccrypto/integer)
+
 With much help from:
     Auston Sterling - Initial debugging and coding help and FFT multiplication
     Corbin @ Code Review (StackExchange) - wrote a sizeable chunk of code and suggestions
