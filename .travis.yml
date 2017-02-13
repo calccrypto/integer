@@ -1,5 +1,8 @@
 language: cpp
 
+# from <http://stackoverflow.com/questions/22111549/travis-ci-with-clang-3-4-and-c11>
+# and  <http://gronlier.fr/blog/2015/01/adding-code-coverage-to-your-c-project/>
+
 compiler:
   - clang
   - gcc
@@ -18,7 +21,8 @@ install:
   - if [ "$CXX" == "clang++" ]; then sudo apt-get install --allow-unauthenticated -qq clang-3.4; fi
   - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.4"; fi
 
-  - sudo apt-get install git cmake
+  - sudo apt-get install -qq git cmake gem
+  - sudo gem install --user coveralls-lcov
 
 before_script:
   - cd tests
@@ -30,4 +34,12 @@ before_script:
   - cd ..
   - make
 
-script: make run
+script:
+  - make run
+
+after_success:
+  - cd ..
+  - lcov --directory . --capture --output-file coverage.info
+  - lcov --remove coverage.info 'tests/*' '/usr/*' --output-file coverage.info
+  - lcov --list coverage.info
+  - coveralls-lcov --repo-token ${COVERALLS_REPO_TOKEN} coverage.info
