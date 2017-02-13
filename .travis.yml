@@ -11,11 +11,12 @@ before_install:
 
   - sudo apt-get update -qq
 
-  - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++; fi
-  - if [ "$CXX" = "g++" ]; then export CXX="g++"; fi
+install:
+  - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-6; fi
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-6"; fi
 
-  - if [ "$CXX" == "clang++" ]; then sudo apt-get install --allow-unauthenticated -qq clang; fi
-  - if [ "$CXX" == "clang++" ]; then export CXX="clang++"; fi
+  - if [ "$CXX" == "clang++" ]; then sudo apt-get install --allow-unauthenticated -qq clang-3.6; fi
+  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.6"; fi
 
   - sudo apt-get install git cmake
 
