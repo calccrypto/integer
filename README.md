@@ -5,7 +5,6 @@ Copyright (c) 2013 - 2017 Jason Lee @ calccrypto at gmail.com
 Please see LICENSE file for license.
 
 [![Build Status](https://travis-ci.org/calccrypto/integer.svg?branch=master)](https://travis-ci.org/calccrypto/integer)
-[![Coverage Status](https://coveralls.io/repos/github/calccrypto/integer/badge.svg?branch=master)](https://coveralls.io/github/calccrypto/integer?branch=master)
 
 With much help from:
 - Auston Sterling - Initial debugging and coding help and FFT multiplication
