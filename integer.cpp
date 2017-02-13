@@ -1187,11 +1187,11 @@ integer::Sign integer::sign() const{
 }
 
 // get number of bits
-integer::REP_SIZE_T integer::bits() const{
+integer integer::bits() const{
     if (_value.empty()){
         return 0;
     }
-    integer::REP_SIZE_T out = _value.size() * integer::BITS;
+    integer out = _value.size() * integer::BITS;
     INTEGER_DIGIT_T mask = HIGH_BIT;
     while (!(_value[0] & mask)){
         out--;
@@ -1201,13 +1201,13 @@ integer::REP_SIZE_T integer::bits() const{
 }
 
 // get number of bytes
-integer::REP_SIZE_T integer::bytes() const{
-    return digits() * (integer::BITS >> 3);
+integer integer::bytes() const{
+    return integer(digits() * integer::OCTETS);
 }
 
 // get number of digits
-integer::REP_SIZE_T integer::digits() const{
-    return _value.size();
+integer integer::digits() const{
+    return integer(_value.size());
 }
 
 // get internal data
@@ -1252,10 +1252,27 @@ std::string integer::str(const uint16_t & base, const unsigned int & length) con
         if (_value.empty()){
             out = std::string(1, 0);
         }
-        for(integer::REP_SIZE_T x = 0; x < _value.size(); x++){
-            out += std::string(1, _value[x]);
+        else{
+            // for each digit
+            for(INTEGER_DIGIT_T const & d : _value){
+                // write out each character
+                for(std::size_t i = integer::OCTETS << 3; i > 0; i -= 8){
+                    out += std::string(1, (d >> (i - 8)) & 0xff);
+                }
+            }
+
+            // remove leading '\x00's
+            if (out.size() > length){
+                std::size_t i = 0;
+                while ((i < out.size()) && !out[i]){
+                    i++;
+                }
+
+                out = out.substr(i, out.size() - i);
+            }
         }
 
+        // pad
         if (out.size() < length){
             out = std::string(length - out.size(), '\x00') + out;
         }

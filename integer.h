@@ -167,7 +167,7 @@ class integer{
             }
             else if (base == 256){
                 while (start != end){
-                    _value.push_back(*start);
+                    *this = (*this << 8) | *start;
                     ++start;
                 }
             }
@@ -527,13 +527,13 @@ class integer{
         Sign sign() const;
 
         // get number of bits
-        REP_SIZE_T bits() const;
+        integer bits() const;
 
         // get number of bytes
-        REP_SIZE_T bytes() const;
+        integer bytes() const;
 
         // get number of digits of internal representation
-        REP_SIZE_T digits() const;
+        integer digits() const;
 
         // get internal data
         REP data() const;

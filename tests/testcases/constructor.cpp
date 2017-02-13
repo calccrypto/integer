@@ -196,8 +196,7 @@ TEST(Constructor, string){
     const integer expected("This is a string.", 256);
 
     for(auto t : tests){
-        const integer value(t.second, t.first);
-        EXPECT_EQ(value, expected);
+        EXPECT_EQ(integer(t.second, t.first), expected);
     }
 
     // bad character
