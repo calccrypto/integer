@@ -560,18 +560,6 @@ class integer{
 
         // Output _value as a string in bases 2 to 16, and 256
         std::string str(const integer & base = 10, const std::string::size_type & length = 1) const;
-
-        std::string string() const {
-            std::stringstream s;
-            for(uint8_t const & c : _value){
-                if (c < 16){
-                    s << 0;
-                }
-                s << std::hex << (int) (uint8_t) c << " ";
-            }
-
-            return s.str();
-        }
 };
 
 // Give integer type traits
