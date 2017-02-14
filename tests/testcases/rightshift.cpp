@@ -5,27 +5,27 @@
 TEST(BitShift, right){
     // operator>>
     integer pos("ffffffffffffffff", 16);
+    uint64_t exp = 0xffffffffffffffffULL;
     for(uint8_t i = 0; i < 64; i++){
-        // std::cout << (int) i << " " << (((uint32_t) 0xffffffff) >> i) << std::endl;
-        EXPECT_EQ(pos >> i, ((uint64_t) 0xffffffffffffffff) >> i);
+        EXPECT_EQ(pos >> i, exp >> i);
     }
 
     integer zero("0", 16);
     for(uint8_t i = 0; i < 64; i++){
-        EXPECT_EQ(zero >> i, (uint64_t) 0);
+        EXPECT_EQ(zero >> i, 0);
     }
 
     // operator>>=
-    uint64_t exp = 0xffffffffffffffffULL;
     for(uint8_t i = 0; i < 64; i++){
         EXPECT_EQ(pos >>= 1, exp >>= 1);
     }
 
     for(uint8_t i = 0; i < 64; i++){
-        EXPECT_EQ(zero >>= 1, (uint64_t) 0);
+        EXPECT_EQ(zero >>= 1, 0);
     }
 
-    // negatives don't match up because of 2's compliment shennanigans
+    // negatives don't match up because C++ does a literal bit shift
+    // which results in lost bits, instead of dividing by 2
 }
 
 TEST(External, shift_right){

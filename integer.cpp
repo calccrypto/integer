@@ -87,29 +87,26 @@ integer::integer(const int64_t & val){
 
 integer::integer(const std::string & val, const uint16_t & base)
 {
-    if (((2 <= base) && (base <= 10)) ||
-        (base == 16) || (base == 256)){
+    integer::Sign sign = integer::POSITIVE;
+    std::string::const_iterator it = val.begin();
 
-        std::string::const_iterator it = val.begin();
-
+    // minus sign indicates negative value only if the base is between 2 and 16 inclusive
+    if ((2 <= base) && (base <= 16)){
         if (it != val.end()){
-            // minus sign indicates negative value only if the base is between 2 and 16 inclusive
-            integer::Sign sign = integer::POSITIVE;
-            if ((2 <= base) && (base <= 16)){
-                if (*it == '-'){
-                    sign = integer::NEGATIVE;
-                    it++;
-                }
+            if (*it == '-'){
+                sign = integer::NEGATIVE;
+                it++;
             }
-            *this = integer(it, val.end(), base);
-            _sign = sign;
         }
-
-        trim();
     }
+    else if (base == 256){} // do nothing; value is considered positive
     else {
         throw std::runtime_error("Error: Cannot convert from base " + std::to_string(base));
     }
+
+    *this = integer(it, val.end(), base);
+    _sign = sign;
+    trim();
 }
 
 //  RHS input args only
@@ -1256,7 +1253,7 @@ std::string integer::str(const integer & base, const std::string::size_type & le
             } while (rhs);
         }
 
-        // pad
+        // pad with '0's
         if (out.size() < length){
             out = std::string(length - out.size(), '0') + out;
         }
@@ -1275,6 +1272,8 @@ std::string integer::str(const integer & base, const std::string::size_type & le
             }
 
             // remove leading '\x00's
+            // this is possible because _value is being read
+            // one character at a time, not one byte at a time
             if (out.size() > length){
                 std::size_t i = 0;
                 while ((i < out.size()) && !out[i]){
@@ -1285,7 +1284,7 @@ std::string integer::str(const integer & base, const std::string::size_type & le
             }
         }
 
-        // pad
+        // pad with '\x00's
         if (out.size() < length){
             out = std::string(length - out.size(), '\x00') + out;
         }
@@ -1296,7 +1295,7 @@ std::string integer::str(const integer & base, const std::string::size_type & le
 
     // if value is negative, add a minus sign in front
     // no special case for leading zeros/nulls
-    if (_sign){
+    if (_sign == integer::NEGATIVE){
         out = "-" + out;
     }
 

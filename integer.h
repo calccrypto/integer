@@ -86,26 +86,19 @@ class integer{
                           !std::is_reference <Z>::value
                           , "Input to integer::setFromZ should be passed by value");
             _value.clear();
-            Sign sign = POSITIVE; // set _sign later
+            _sign = POSITIVE;
 
+            // make positive
             if (std::is_signed <Z>::value && (val < 0)){
-                sign = NEGATIVE;
-                val = -val;
+                _sign = NEGATIVE;
+                val = -val; // treat as positive even if top bit is still set
             }
 
-            // prevent infinite recursion
-            if ((sizeof(Z) <= OCTETS) ||    // input type fits into a single digit
-                 (val      <= (Z) NEG1)){   // input type doesn't fit, but value is small enough to fit
-                _value.push_back(val & NEG1);
-            }
-            else{
-                while (val){
-                    _value.push_front(val & NEG1);
-                    val >>= BITS;
-                }
+            for(std::size_t d = std::max(sizeof(Z) / OCTETS, (std::size_t) 1); d > 0; d--){
+                _value.push_front(val & NEG1);
+                val >>= BITS;
             }
 
-            _sign = sign;
             return trim();
         }
 
@@ -147,35 +140,33 @@ class integer{
                 return;
             }
 
-            if ((2 <= base) && (base <= 10)){
-                while (start != end){
-                    if (!std::isdigit(*start)){
-                        throw std::runtime_error(std::string("Error: Non-digit character found : '") + *start + "'");
-                    }
-                    *this = (*this * base) + (*start - '0');
-                    ++start;
-                }
-            }
-            else if (base == 16){
-                for(; start != end; start++){
-                    if (std::isxdigit(*start)){
-                        *this <<= 4;
-                        if (std::isdigit(*start)){
-                            *this |= *start - '0';                      // 0-9
-                        }
-                        else {
-                            *this |= 10 + (std::tolower(*start) - 'a'); // a-f
-                        }
-                    }
-                    else{
-                        throw std::runtime_error(std::string("Error: Non-hexadecimal character found: '") + *start + "'");
-                    }
-                }
+            _sign = POSITIVE;                   // force *this to be positive
 
+            if ((2 <= base) && (base <= 16)){
+                for(; start != end; start++){
+                    uint8_t d = std::tolower(*start);
+                    if (std::isdigit(d)){       // 0-9
+                        d -= '0';
+                        if (d >= base){
+                            throw std::runtime_error(std::string("Error: Not a digit in base ") + std::to_string(base) + ": '"+ *start + "'");
+                        }
+                    }
+                    else if (std::isxdigit(d)){ // a-f
+                        d -= 'a' - 10;
+                        if (d >= base){
+                            throw std::runtime_error(std::string("Error: Not a digit in base ") + std::to_string(base) + ": '"+ *start + "'");
+                        }
+                    }
+                    else{                       // bad character
+                        throw std::runtime_error(std::string("Error: Not a digit in base ") + std::to_string(base) + ": '"+ *start + "'");
+                    }
+
+                    *this = (*this * base) + d;
+                }
             }
             else if (base == 256){
                 while (start != end){
-                    *this = (*this << 8) | *start;
+                    *this = (*this << 8) | (*start & 0xff);
                     ++start;
                 }
             }

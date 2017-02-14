@@ -1,8 +1,28 @@
+#include <map>
 #include <random>
 
 #include <gtest/gtest.h>
 
 #include "integer.h"
+
+static const std::map <uint32_t, std::string> tests = {
+    std::make_pair(2,   "101010001101000011010010111001100100000011010010111001100100000011000010010000001110011011101000111001001101001011011100110011100101110"),
+    std::make_pair(3,   "2101202220020120210021010201120221222110112000200102121210012000010001021212021100000"),
+    std::make_pair(4,   "11101220122113030200122113030200120102001303131013021221123212130232"),
+    std::make_pair(5,   "4032202131330223233031114224410403134231304022143001330410"),
+    std::make_pair(6,   "5531134214144243020053142531200532421145413044445130"),
+    std::make_pair(7,   "532263065534265303521033050453362434600614616460"),
+    std::make_pair(8,   "521503227144032271440302201633507115133463456"),
+    std::make_pair(9,   "2352806523233646858415020377705003037767300"),
+    std::make_pair(10,  "28722506059135649064412913099795503933230"),
+    std::make_pair(11,  "7751711a04844aa72a247661335688478315564"),
+    std::make_pair(12,  "346330b6506333a171868945005064199a97a6"),
+    std::make_pair(13,  "236ab8aa5353522a16bcc5bb1c2001b915682"),
+    std::make_pair(14,  "22c722255a44235c7b997b90326398d16130"),
+    std::make_pair(15,  "2e5b08ec45244e6773ed2014e47b688ddc0"),
+    std::make_pair(16,  "54686973206973206120737472696e672e"),
+    std::make_pair(256, "This is a string."),
+};
 
 TEST(Function, negate){
     EXPECT_EQ(integer("-1", 16).negate(), integer("1", 16));    // negative
@@ -45,12 +65,8 @@ TEST(Function, index){
 }
 
 TEST(Function, str){
-    const std::pair <uint32_t, std::string> tests[] = {
-        std::make_pair(2,  "101010001101000011010010111001100100000011010010111001100100000011000010010000001110011011101000111001001101001011011100110011100101110"),
-        std::make_pair(8,  "521503227144032271440302201633507115133463456"),
-        std::make_pair(10, "28722506059135649064412913099795503933230"),
-        std::make_pair(16, "54686973206973206120737472696e672e"),
-    };
+    // number of leading 0s
+    const std::string::size_type leading = 5;
 
     // make sure all of the test strings create the ASCII version of the string
     const integer original("This is a string.", 256);
@@ -58,16 +74,24 @@ TEST(Function, str){
         EXPECT_EQ(original.str(t.first), t.second);
     }
 
-    // negative sign shows up with 0
-    const integer neg_zero("-0", 10);
-    for(auto t : tests){
-        EXPECT_EQ(neg_zero.str(t.first), "0");
+    // add leading zeros
+    for(uint32_t base = 2; base <= 16; base++){
+        EXPECT_EQ(original.str(base, tests.at(base).size() + leading), std::string(leading, '0') + tests.at(base));
     }
+    EXPECT_EQ(original.str(256, tests.at(256).size() + leading), std::string(leading, 0) + tests.at(256));
 
-    // leading zeros show up
-    for(auto t : tests){
-        EXPECT_EQ(neg_zero.str(t.first, 5), "00000");
+    // negative sign should not show up up with 0
+    const integer neg_zero("-0", 10);
+    for(uint32_t base = 2; base <= 16; base++){
+        EXPECT_EQ(neg_zero.str(base), "0");
     }
+    EXPECT_EQ(neg_zero.str(256), std::string(1, 0));
+
+    // leading 5 zeros show up
+    for(uint32_t base = 2; base <= 16; base++){
+        EXPECT_EQ(neg_zero.str(base, leading), "00000");
+    }
+    EXPECT_EQ(neg_zero.str(256, leading), std::string(leading, 0));
 }
 
 TEST(External, ostream){
@@ -135,16 +159,8 @@ TEST(External, istream){
 }
 
 TEST(External, makebin){
-    const std::pair <uint32_t, std::string> tests[] = {
-        std::make_pair(2,   "101010001101000011010010111001100100000011010010111001100100000011000010010000001110011011101000111001001101001011011100110011100101110"),
-        std::make_pair(8,   "521503227144032271440302201633507115133463456"),
-        std::make_pair(10,  "28722506059135649064412913099795503933230"),
-        std::make_pair(16,  "54686973206973206120737472696e672e"),
-        std::make_pair(256, "This is a string."),
-    };
-
     for(auto t : tests){
-        EXPECT_EQ(makebin(integer(t.second, t.first)), tests[0].second);
+        EXPECT_EQ(makebin(integer(t.second, t.first)), tests.at(2));
     }
 
     // negative sign shows up with 0
@@ -157,16 +173,8 @@ TEST(External, makebin){
 }
 
 TEST(External, makehex){
-    const std::pair <uint32_t, std::string> tests[] = {
-        std::make_pair(2,   "101010001101000011010010111001100100000011010010111001100100000011000010010000001110011011101000111001001101001011011100110011100101110"),
-        std::make_pair(8,   "521503227144032271440302201633507115133463456"),
-        std::make_pair(10,  "28722506059135649064412913099795503933230"),
-        std::make_pair(16,  "54686973206973206120737472696e672e"),
-        std::make_pair(256, "This is a string."),
-    };
-
     for(auto t : tests){
-        EXPECT_EQ(makehex(integer(t.second, t.first)), tests[3].second);
+        EXPECT_EQ(makehex(integer(t.second, t.first)), tests.at(16));
     }
 
     // negative sign shows up with 0
@@ -178,16 +186,8 @@ TEST(External, makehex){
 }
 
 TEST(External, makeascii){
-    const std::pair <uint32_t, std::string> tests[] = {
-        std::make_pair(2,   "101010001101000011010010111001100100000011010010111001100100000011000010010000001110011011101000111001001101001011011100110011100101110"),
-        std::make_pair(8,   "521503227144032271440302201633507115133463456"),
-        std::make_pair(10,  "28722506059135649064412913099795503933230"),
-        std::make_pair(16,  "54686973206973206120737472696e672e"),
-        std::make_pair(256, "This is a string."),
-    };
-
     for(auto t : tests){
-        EXPECT_EQ(makeascii(integer(t.second, t.first)), tests[4].second);
+        EXPECT_EQ(makeascii(integer(t.second, t.first)), tests.at(256));
     }
 
     // negative sign shows up with 0

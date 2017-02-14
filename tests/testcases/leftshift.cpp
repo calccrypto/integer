@@ -5,26 +5,35 @@
 TEST(BitShift, left){
     // operator<<
     integer pos("1", 16);
+    uint64_t exp_pos = 1;
     for(uint8_t i = 0; i < 64; i++){
-        EXPECT_EQ(pos << i, ((uint64_t) 1ULL) << i);
+        EXPECT_EQ(pos << i, exp_pos << i);
+    }
+
+    // negatives work for left shift because 0s are getting pulled from nowhere, not 1s
+    integer neg     = -pos;
+    int64_t exp_neg = -exp_pos;
+    for(uint8_t i = 0; i < 64; i++){
+        EXPECT_EQ(neg << i, exp_neg << i);
     }
 
     integer zero("0", 16);
     for(uint8_t i = 0; i < 64; i++){
-        EXPECT_EQ(zero << i, (uint64_t) 0);
+        EXPECT_EQ(zero << i, 0);
     }
 
     // operator<<=
-    uint64_t exp = 1;
     for(uint8_t i = 0; i < 63; i++){ // 1 is already a bit
-        EXPECT_EQ(pos <<= 1, exp <<= 1);
+        EXPECT_EQ(pos  <<= 1, exp_pos <<= 1);
+    }
+
+    for(uint8_t i = 0; i < 63; i++){ // 1 is already a bit
+        EXPECT_EQ(neg  <<= 1, exp_neg <<= 1);
     }
 
     for(uint8_t i = 0; i < 63; i++){
-        EXPECT_EQ(zero <<= 1, (uint64_t) 0);
+        EXPECT_EQ(zero <<= 1, 0);
     }
-
-    // negatives don't match up because of 2's compliment shennanigans
 }
 
 TEST(External, shift_left){
