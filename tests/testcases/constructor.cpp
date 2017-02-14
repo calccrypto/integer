@@ -3,6 +3,8 @@
 #include "integer.h"
 
 TEST(Constructor, standard){
+    integer(123);
+
     integer value("0123456789abcdef", 16);
     const integer original = value;
 

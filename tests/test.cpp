@@ -31,8 +31,6 @@ THE SOFTWARE.
 
 #include <gtest/gtest.h>
 
-#warning add bad input types to each test
-
 int main(int argc, char * argv[]){
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

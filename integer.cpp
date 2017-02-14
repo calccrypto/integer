@@ -1,11 +1,11 @@
 #include "integer.h"
 
 constexpr INTEGER_DIGIT_T integer::NEG1;
-constexpr INTEGER_DIGIT_T integer::OCTETS;
-constexpr INTEGER_DIGIT_T integer::BITS;
+constexpr std::size_t     integer::OCTETS;
+constexpr std::size_t     integer::BITS;
 constexpr INTEGER_DIGIT_T integer::HIGH_BIT;
-constexpr integer::Sign integer::POSITIVE;
-constexpr integer::Sign integer::NEGATIVE;
+constexpr integer::Sign   integer::POSITIVE;
+constexpr integer::Sign   integer::NEGATIVE;
 
 integer & integer::trim(){                  // remove top 0 digits to save memory
     while (!_value.empty() && !_value[0]){
@@ -131,103 +131,88 @@ integer & integer::operator=(integer && rhs){
 }
 
 // Typecast Operators
-integer::operator bool() const{
+integer::operator bool() const {
     return !_value.empty();
 }
 
-integer::operator uint8_t() const{
-    if (_value.empty()){
-        return 0;
-    }
-    uint8_t out = static_cast <uint8_t> (_value.back() & 255);
-    if (_sign){
-        out = -out;
-    }
-    return out;
+integer::operator uint8_t() const {
+    const uint8_t out = static_cast <uint8_t> (_value.empty()?0:_value.back() & 255);
+    return _sign?-out:out;
 }
 
-integer::operator uint16_t() const{
+integer::operator uint16_t() const {
     uint16_t out = 0;
-    for(uint8_t x = 0; x < std::min(_value.size(), (integer::REP_SIZE_T) (2 / integer::OCTETS)); x++){
-        out += static_cast <uint16_t> (_value[_value.size() - x - 1]) << (x * integer::BITS);
+
+    const integer::REP_SIZE_T d = std::min(digits(), std::max((integer::REP_SIZE_T) 2 / integer::OCTETS, (integer::REP_SIZE_T) 1));
+    for(std::size_t x = 0; x < d; x++){
+        out += static_cast <uint16_t> (_value[digits() - x - 1]) << (x * integer::BITS);
     }
-    if (_sign){
-        out = -out;
-    }
-    return out;
+
+    return _sign?-out:out;
 }
 
-integer::operator uint32_t() const{
+integer::operator uint32_t() const {
     uint32_t out = 0;
-    for(uint8_t x = 0; x < std::min(_value.size(), (integer::REP_SIZE_T) (4 / integer::OCTETS)); x++){
-        out += static_cast <uint32_t> (_value[_value.size() - x - 1]) << (x * integer::BITS);
+
+    const integer::REP_SIZE_T d = std::min(digits(), std::max((integer::REP_SIZE_T) 4 / integer::OCTETS, (integer::REP_SIZE_T) 1));
+    for(std::size_t x = 0; x < d; x++){
+        out += static_cast <uint32_t> (_value[digits() - x - 1]) << (x * integer::BITS);
     }
-    if (_sign){
-        out = -out;
-    }
-    return out;
+
+    return _sign?-out:out;
 }
 
-integer::operator uint64_t() const{
+integer::operator uint64_t() const {
     uint64_t out = 0;
-    for(uint8_t x = 0; x < std::min(_value.size(), (integer::REP_SIZE_T) (8 / integer::OCTETS)); x++){
-        out += static_cast <uint64_t> (_value[_value.size() - x - 1]) << (x * integer::BITS);
+
+    const integer::REP_SIZE_T d = std::min(digits(), std::max((integer::REP_SIZE_T) 8 / integer::OCTETS, (integer::REP_SIZE_T) 1));
+    for(std::size_t x = 0; x < d; x++){
+        out += static_cast <uint64_t> (_value[digits() - x - 1]) << (x * integer::BITS);
     }
-    if (_sign){
-        out = -out;
-    }
-    return out;
+
+    return _sign?-out:out;
 }
 
-integer::operator int8_t() const{
-    if (_value.empty()){
-        return 0;
-    }
-    int8_t out = static_cast <int8_t> (_value.back() & 255);
-    if (_sign){
-        out = -out;
-    }
-    return out;
+integer::operator int8_t() const {
+    const int8_t out = static_cast <int8_t> (_value.empty()?0:_value.back() & 255);
+    return _sign?-out:out;
 }
 
-integer::operator int16_t() const{
+integer::operator int16_t() const {
     int16_t out = 0;
-    for(uint8_t b = 16; b > 0; b--){
-        out = (out << 1) | (*this)[b - 1];
+
+    const integer::REP_SIZE_T d = std::min(digits(), std::max((integer::REP_SIZE_T) 2 / integer::OCTETS, (integer::REP_SIZE_T) 1));
+    for(std::size_t x = 0; x < d; x++){
+        out += static_cast <int16_t> (_value[digits() - x - 1]) << (x * integer::BITS);
     }
 
-    if (_sign){
-        out = -out;
-    }
-    return out;
+    return _sign?-out:out;
 }
 
-integer::operator int32_t() const{
+integer::operator int32_t() const {
     int32_t out = 0;
-    for(uint8_t b = 32; b > 0; b--){
-        out = (out << 1) | (*this)[b - 1];
+
+    const integer::REP_SIZE_T d = std::min(digits(), std::max((integer::REP_SIZE_T) 4 / integer::OCTETS, (integer::REP_SIZE_T) 1));
+    for(std::size_t x = 0; x < d; x++){
+        out += static_cast <int32_t> (_value[digits() - x - 1]) << (x * integer::BITS);
     }
 
-    if (_sign){
-        out = -out;
-    }
-    return out;
+    return _sign?-out:out;
 }
 
-integer::operator int64_t() const{
+integer::operator int64_t() const {
     int64_t out = 0;
-    for(uint8_t b = 64; b > 0; b--){
-        out = (out << 1) | (*this)[b - 1];
+
+    const integer::REP_SIZE_T d = std::min(digits(), std::max((integer::REP_SIZE_T) 8 / integer::OCTETS, (integer::REP_SIZE_T) 1));
+    for(std::size_t x = 0; x < d; x++){
+        out += static_cast <int64_t> (_value[digits() - x - 1]) << (x * integer::BITS);
     }
 
-    if (_sign){
-        out = -out;
-    }
-    return out;
+    return _sign?-out:out;
 }
 
 // Bitwise Operators
-integer integer::operator&(const integer & rhs) const{
+integer integer::operator&(const integer & rhs) const {
     integer::REP out;
 
     const integer::REP_SIZE_T max_bits = std::max(bits(), rhs.bits());
@@ -253,7 +238,7 @@ integer & integer::operator&=(const integer & rhs){
     return *this = *this & rhs;
 }
 
-integer integer::operator|(const integer & rhs) const{
+integer integer::operator|(const integer & rhs) const {
     const integer::REP_SIZE_T max_bits = std::max(bits(), rhs.bits());
     const integer             left     = (    _sign == integer::POSITIVE)?*this:twos_complement(max_bits);
     const integer             right    = (rhs._sign == integer::POSITIVE)?rhs:rhs.twos_complement(max_bits);
@@ -288,7 +273,7 @@ integer & integer::operator|=(const integer & rhs){
     return *this = *this | rhs;
 }
 
-integer integer::operator^(const integer & rhs) const{
+integer integer::operator^(const integer & rhs) const {
     const integer::REP_SIZE_T max_bits = std::max(bits(), rhs.bits());
     const integer             left     = (    _sign == integer::POSITIVE)?*this:twos_complement(max_bits);
     const integer             right    = (rhs._sign == integer::POSITIVE)?rhs:rhs.twos_complement(max_bits);
@@ -325,8 +310,8 @@ integer & integer::operator^=(const integer & rhs){
 
 integer integer::operator~() const {
     // in case value is 0
-    if (!_value.size()){
-        return integer(1);
+    if (_value.empty()){
+        return 1;
     }
 
     integer::REP out = _value;
@@ -353,7 +338,7 @@ integer integer::operator~() const {
 // Bit Shift Operators
 
 // left bit shift. sign is maintained
-integer integer::operator<<(const integer & shift) const{
+integer integer::operator<<(const integer & shift) const {
     if (!*this || !shift){
         return *this;
     }
@@ -363,7 +348,7 @@ integer integer::operator<<(const integer & shift) const{
     }
 
     const std::pair <integer, integer> qr = dm(shift, integer::BITS);
-    const integer & whole    = qr.first;               // number of zeros to add to the back
+    const integer & whole      = qr.first;             // number of zeros to add to the back
     const INTEGER_DIGIT_T push = qr.second;            // push left by this many bits
     const INTEGER_DIGIT_T pull = integer::BITS - push; // pull "push" bits from the right
 
@@ -374,7 +359,10 @@ integer integer::operator<<(const integer & shift) const{
 
     // do this part first to avoid shifting zeros
     for(integer::REP_SIZE_T i = 0; i < (out.size() - 1); i++){
-        out[i] = (out[i] << push) | (out[i + 1] >> pull);
+        INTEGER_DOUBLE_DIGIT_T d = out[i];
+        d = (d << push) | (out[i + 1] >> pull);
+        out[i] = d & NEG1;
+        // out[i] = (out[i] << push) | (out[i + 1] >> pull);
     }
 
     if (!out[0]){                                      // if the top digit is still 0
@@ -397,7 +385,7 @@ integer & integer::operator<<=(const integer & shift){
 }
 
 // right bit shift. sign is maintained
-integer integer::operator>>(const integer & shift) const{
+integer integer::operator>>(const integer & shift) const {
     if (shift < 0){
         throw std::runtime_error("Error: Negative shift amount");
     }
@@ -407,7 +395,7 @@ integer integer::operator>>(const integer & shift) const{
     }
 
     const std::pair <integer, integer> qr = dm(shift, integer::BITS);
-    const integer & whole    = qr.first;               // number of digits to pop off
+    const integer & whole      = qr.first;             // number of digits to pop off
     const INTEGER_DIGIT_T push = qr.second;            // push right by this many bits
     const INTEGER_DIGIT_T pull = integer::BITS - push; // pull "push" bits from the left
 
@@ -439,16 +427,16 @@ bool integer::operator!(){
 }
 
 // Comparison Operators
-bool integer::operator==(const integer & rhs) const{
+bool integer::operator==(const integer & rhs) const {
     return ((_sign == rhs._sign) && (_value == rhs._value));
 }
 
-bool integer::operator!=(const integer & rhs) const{
+bool integer::operator!=(const integer & rhs) const {
     return !(*this == rhs);
 }
 
 // operator> not considering signs
-bool integer::gt(const integer & lhs, const integer & rhs) const{
+bool integer::gt(const integer & lhs, const integer & rhs) const {
     if (lhs._value.size() > rhs._value.size()){
         return true;
     }
@@ -466,7 +454,7 @@ bool integer::gt(const integer & lhs, const integer & rhs) const{
     return false;
 }
 
-bool integer::operator>(const integer & rhs) const{
+bool integer::operator>(const integer & rhs) const {
     if      (    (_sign == integer::NEGATIVE) &&    // - > +
              (rhs._sign == integer::POSITIVE)){
         return false;
@@ -484,12 +472,12 @@ bool integer::operator>(const integer & rhs) const{
     return gt(*this, rhs);
 }
 
-bool integer::operator>=(const integer & rhs) const{
+bool integer::operator>=(const integer & rhs) const {
     return ((*this > rhs) | (*this == rhs));
 }
 
 // operator< not considering signs
-bool integer::lt(const integer & lhs, const integer & rhs) const{
+bool integer::lt(const integer & lhs, const integer & rhs) const {
     if (lhs._value.size() < rhs._value.size()){
         return true;
     }
@@ -507,7 +495,7 @@ bool integer::lt(const integer & lhs, const integer & rhs) const{
     return false;
 }
 
-bool integer::operator<(const integer & rhs) const{
+bool integer::operator<(const integer & rhs) const {
     if      (    (_sign == integer::NEGATIVE) &&     // - < +
              (rhs._sign == integer::POSITIVE)){
         return true;
@@ -525,12 +513,12 @@ bool integer::operator<(const integer & rhs) const{
     return lt(*this, rhs);
 }
 
-bool integer::operator<=(const integer & rhs) const{
+bool integer::operator<=(const integer & rhs) const {
     return ((*this < rhs) | (*this == rhs));
 }
 
 // Arithmetic Operators
-integer integer::add(const integer & lhs, const integer & rhs) const{
+integer integer::add(const integer & lhs, const integer & rhs) const {
     integer::REP out;
     integer::REP::const_reverse_iterator i = lhs._value.rbegin(), j = rhs._value.rbegin();
     bool carry = false;
@@ -563,7 +551,7 @@ integer integer::add(const integer & lhs, const integer & rhs) const{
     return integer(out);
 }
 
-integer integer::operator+(const integer & rhs) const{
+integer integer::operator+(const integer & rhs) const {
     if (!rhs){
         return *this;
     }
@@ -609,7 +597,7 @@ integer & integer::operator+=(const integer & rhs){
 }
 
 // Subtraction as done by hand
-integer integer::long_sub(const integer & lhs, const integer & rhs) const{
+integer integer::long_sub(const integer & lhs, const integer & rhs) const {
     // rhs always smaller than lhs
     integer out = lhs;
     integer::REP_SIZE_T lsize = out._value.size() - 1;
@@ -648,7 +636,7 @@ integer integer::long_sub(const integer & lhs, const integer & rhs) const{
 
 // subtraction not considering signs
 // lhs must be larger than rhs
-integer integer::sub(const integer & lhs, const integer & rhs) const{
+integer integer::sub(const integer & lhs, const integer & rhs) const {
     if (!rhs){
         return lhs;
     }
@@ -662,7 +650,7 @@ integer integer::sub(const integer & lhs, const integer & rhs) const{
     // return two_comp_sub(lhs, rhs);
 }
 
-integer integer::operator-(const integer & rhs) const{
+integer integer::operator-(const integer & rhs) const {
     integer out = *this;
     if (gt(out, rhs)){                                  // if lhs > rhs
         if (out._sign == rhs._sign){                    // same signs
@@ -713,7 +701,7 @@ integer & integer::operator-=(const integer & rhs){
 }
 
 // // Peasant Multiplication
-// integer integer::peasant(const integer & lhs, const integer & rhs) const{
+// integer integer::peasant(const integer & lhs, const integer & rhs) const {
    // integer rhs_copy = rhs;
    // integer sum = 0;
    // for(integer::REP_SIZE_T x = 0; x < lhs.bits(); x++){
@@ -726,7 +714,7 @@ integer & integer::operator-=(const integer & rhs){
 // }
 
 // // Recurseive Peasant Algorithm
-// integer integer::recursive_peasant(const integer & lhs, const integer & rhs) const{
+// integer integer::recursive_peasant(const integer & lhs, const integer & rhs) const {
    // if (!rhs){
        // return 0;
    // }
@@ -737,7 +725,7 @@ integer & integer::operator-=(const integer & rhs){
 // }
 
 // // Recursive Multiplication
-// integer integer::recursive_mult(const integer & lhs, const integer & rhs) const{
+// integer integer::recursive_mult(const integer & lhs, const integer & rhs) const {
    // if (!rhs){
       // return 0;
    // }
@@ -749,7 +737,7 @@ integer & integer::operator-=(const integer & rhs){
 // }
 
 // // Karatsuba Algorithm
-// integer integer::karatsuba(const integer & lhs, const integer & rhs, integer bm) const{
+// integer integer::karatsuba(const integer & lhs, const integer & rhs, integer bm) const {
   // // b is integer::REP = 256
   // // m is chars = 4
   // // bm is max _value = b ^ m
@@ -824,7 +812,7 @@ integer & integer::operator-=(const integer & rhs){
 // }
 
 // // Long multiplication
-// integer integer::long_mult(const integer & lhs, const integer & rhs) const{
+// integer integer::long_mult(const integer & lhs, const integer & rhs) const {
    // unsigned int zeros = 0;
    // integer row, out = 0;
    // for(integer::REP::const_reverse_iterator i = lhs._value.rbegin(); i != lhs._value.rend(); i++){
@@ -915,7 +903,7 @@ int integer::fft(std::deque<double>& data, bool dir) const
 //Based on the convolution theorem which states that the Fourier
 //transform of a convolution is the pointwise product of their
 //Fourier transforms.
-integer integer::fft_mult(const integer& lhs, const integer& rhs) const{
+integer integer::fft_mult(const integer& lhs, const integer& rhs) const {
      //Convert each integer to input wanted by fft()
      size_t size = 1;
      while (size < lhs._value.size()*2){
@@ -976,7 +964,7 @@ integer integer::fft_mult(const integer& lhs, const integer& rhs) const{
      return out;
 }
 
-integer integer::operator*(const integer & rhs) const{
+integer integer::operator*(const integer & rhs) const {
     // quick checks
     if (!*this || !rhs){    // if multiplying by 0
         return 0;
@@ -1005,7 +993,7 @@ integer & integer::operator*=(const integer & rhs){
 }
 
 // // Naive Division: keep subtracting until lhs == 0
-// std::pair <integer, integer> integer::naive_divmod(const integer & lhs, const integer & rhs) const{
+// std::pair <integer, integer> integer::naive_divmod(const integer & lhs, const integer & rhs) const {
     // std::pair <integer, integer> qr (0, lhs);
     // while (qr.second >= rhs){
         // qr.second -= rhs;
@@ -1015,7 +1003,7 @@ integer & integer::operator*=(const integer & rhs){
 // }
 
 // // Long Division returning both quotient and remainder
-// std::pair <integer, integer> integer::long_divmod(const integer & lhs, const integer & rhs) const{
+// std::pair <integer, integer> integer::long_divmod(const integer & lhs, const integer & rhs) const {
    // std::pair <integer, integer> qr(0, lhs);
    // integer copyd = rhs;
    // integer adder = 1;
@@ -1039,7 +1027,7 @@ integer & integer::operator*=(const integer & rhs){
 
 // // Recursive Division that returns both the quotient and remainder
 // // Recursion took up way too much memory
-// std::pair <integer, integer> integer::recursive_divmod(const integer & lhs, const integer & rhs) const{
+// std::pair <integer, integer> integer::recursive_divmod(const integer & lhs, const integer & rhs) const {
    // std::pair <integer, integer> qr;
    // if (!lhs){
        // qr.first = 0;
@@ -1059,7 +1047,7 @@ integer & integer::operator*=(const integer & rhs){
 // }
 
 // Non-Recursive version of above algorithm
-std::pair <integer, integer> integer::non_recursive_divmod(const integer & lhs, const integer & rhs) const{
+std::pair <integer, integer> integer::non_recursive_divmod(const integer & lhs, const integer & rhs) const {
     std::pair <integer, integer> qr (0, 0);
     for(integer::REP_SIZE_T x = lhs.bits(); x > 0; x--){
         qr.first  <<= 1;
@@ -1078,7 +1066,7 @@ std::pair <integer, integer> integer::non_recursive_divmod(const integer & lhs, 
 }
 
 // division and modulus ignoring signs
-std::pair <integer, integer> integer::dm(const integer & lhs, const integer & rhs) const{
+std::pair <integer, integer> integer::dm(const integer & lhs, const integer & rhs) const {
     if (!rhs){              // divide by 0 error
         throw std::runtime_error("Error: division or modulus by 0");
     }
@@ -1131,7 +1119,7 @@ std::pair <integer, integer> integer::divmod(const integer & lhs, const integer 
     return out;
 }
 
-integer integer::operator/(const integer & rhs) const{
+integer integer::operator/(const integer & rhs) const {
     return divmod(*this, rhs).first;
 }
 
@@ -1139,7 +1127,7 @@ integer & integer::operator/=(const integer & rhs){
     return *this = *this / integer(rhs);
 }
 
-integer integer::operator%(const integer & rhs) const{
+integer integer::operator%(const integer & rhs) const {
     return divmod(*this, rhs).second;
 }
 
@@ -1172,46 +1160,51 @@ integer integer::operator--(int){
 }
 
 // Nothing done since promotion doesnt work here
-integer integer::operator+() const{
+integer integer::operator+() const {
     return *this;
 }
 
 // Flip Sign
-integer integer::operator-() const{
+integer integer::operator-() const {
     return integer(_value, !_sign);
 }
 
 // get private values
-integer::Sign integer::sign() const{
+integer::Sign integer::sign() const {
     return _sign;
 }
 
-// get number of bits
-integer integer::bits() const{
-    if (_value.empty()){
-        return 0;
+// get minimum number of bits needed to hold this value
+integer integer::bits() const {
+    integer         out = integer(_value.empty()?0:(_value.size() - 1)) * integer::BITS;
+    INTEGER_DIGIT_T msb = _value.empty()?0:_value[0];
+    while (msb){
+        msb >>= 1;
+        out++;
     }
-    integer out = _value.size() * integer::BITS;
-    INTEGER_DIGIT_T mask = HIGH_BIT;
-    while (!(_value[0] & mask)){
-        out--;
-        mask >>= 1;
-    }
+
     return out;
 }
 
-// get number of bytes
-integer integer::bytes() const{
-    return integer(digits() * integer::OCTETS);
+// get minimum number of bytes needed to hold this value
+integer::REP_SIZE_T integer::bytes() const {
+    integer::REP_SIZE_T out = (_value.empty()?0:(_value.size() - 1)) * integer::OCTETS;
+    INTEGER_DIGIT_T     msb = (_value.empty()?0:_value[0]);
+    while (msb){
+        msb >>= 8;
+        out++;
+    }
+
+    return out;
 }
 
 // get number of digits
-integer integer::digits() const{
-    return integer(_value.size());
+integer::REP_SIZE_T integer::digits() const {
+    return _value.size();
 }
 
 // get internal data
-integer::REP integer::data() const{
+integer::REP integer::data() const {
     return _value;
 }
 
@@ -1221,7 +1214,7 @@ integer & integer::negate(){
     return trim();
 }
 
-integer integer::twos_complement(unsigned int b) const{
+integer integer::twos_complement(const integer::REP_SIZE_T & b) const {
     integer mask; mask.fill(b);
     integer out = ((abs(*this) ^ mask) + 1) & mask;
     out._sign = !_sign;
@@ -1229,7 +1222,7 @@ integer integer::twos_complement(unsigned int b) const{
 }
 
 // fills an integer with 1s
-integer & integer::fill(const uint64_t & b){
+integer & integer::fill(const integer::REP_SIZE_T & b){
     _value = integer::REP(b / integer::BITS, integer::NEG1);
     if (b % integer::BITS){
         _value.push_front((1 << (b % integer::BITS)) - 1);
@@ -1238,7 +1231,7 @@ integer & integer::fill(const uint64_t & b){
 }
 
 // get bit, where 0 is the lsb and bits() - 1 is the msb
-bool integer::operator[](const unsigned int & b) const{
+bool integer::operator[](const integer::REP_SIZE_T & b) const {
     if (b >= bits()){ // if given index is larger than bits in this _value, return 0
         return 0;
     }
@@ -1246,9 +1239,29 @@ bool integer::operator[](const unsigned int & b) const{
 }
 
 // Output value as a string from base 2 to 16, or base 256
-std::string integer::str(const uint16_t & base, const unsigned int & length) const{
+std::string integer::str(const integer & base, const std::string::size_type & length) const {
     std::string out = "";
-    if (base == 256){
+    if ((2 <= base) && (base <= 16)){
+        static const std::string digits = "0123456789abcdef";
+        integer rhs = abs(*this);       // use absolute value to make sure index stays small
+        if (*this == 0){
+            out = "0";
+        }
+        else{
+            std::pair <integer, integer> qr;
+            do{
+                qr = dm(rhs, base);
+                out = digits[qr.second] + out;
+                rhs = qr.first;
+            } while (rhs);
+        }
+
+        // pad
+        if (out.size() < length){
+            out = std::string(length - out.size(), '0') + out;
+        }
+    }
+    else if (base == 256){
         if (_value.empty()){
             out = std::string(1, 0);
         }
@@ -1277,27 +1290,8 @@ std::string integer::str(const uint16_t & base, const unsigned int & length) con
             out = std::string(length - out.size(), '\x00') + out;
         }
     }
-    else if ((2 <= base) && (base <= 16)){
-        static const std::string digits = "0123456789abcdef";
-        integer rhs = abs(*this);                                // use absolute value to make sure index stays small
-        if (*this == 0){
-            out = "0";
-        }
-        else{
-            std::pair <integer, integer> qr;
-            do{
-                qr = dm(rhs, base);
-                out = digits[qr.second] + out;
-                rhs = qr.first;
-            } while (rhs);
-        }
-
-        if (out.size() < length){
-            out = std::string(length - out.size(), '0') + out;
-        }
-    }
     else{
-        throw std::runtime_error("Error: Cannot convert to base " + integer(base).str());
+        throw std::runtime_error("Error: Cannot convert to base " + base.str(10));
     }
 
     // if value is negative, add a minus sign in front

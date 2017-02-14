@@ -32,8 +32,8 @@ should be more than enough for any purpose.
         integer sum = a + b + c + d + 1;           // 79600447923724 (decimal)
 
         std::cout << sum             << std::endl; // print directly
-        std::cout << sum.str(16, 10) << std::endl; // print with a specific base
-        std::cout << std::hex << sum << std::endl; // print using stream format flags
+        std::cout << sum.str(16)     << std::endl; // print with a specific base
+        std::cout << std::hex << sum << std::endl; // print using std::oct, std::dec, and std::hex
 
         return 0;
     }

@@ -2,7 +2,7 @@
 
 #include "integer.h"
 
-TEST(Typecast, a){
+TEST(Typecast, all){
     const integer pos("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 16);
 
     EXPECT_EQ(static_cast <bool>     (integer(true)),            true);

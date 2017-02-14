@@ -11,6 +11,18 @@ TEST(Arithmetic, multiply){
     EXPECT_EQ((neg * neg).str(16),   "fdb8e2bacbfe7cef010e6cd7a44a4100");
     EXPECT_EQ((pos *= neg).str(16), "-fdb8e2bacbfe7cef010e6cd7a44a4100");
     EXPECT_EQ((neg *= pos).str(16), "fc9746ea4a27b1546859e0aeb1257bbbbd05a5e419561000");
+
+    const integer zero = 0;
+    EXPECT_EQ(pos  * zero, zero);
+    EXPECT_EQ(zero * pos,  zero);
+    EXPECT_EQ(neg  * zero, zero);
+    EXPECT_EQ(zero * neg,  zero);
+
+    const integer one = 1;
+    EXPECT_EQ(pos * one, pos);
+    EXPECT_EQ(one * pos, pos);
+    EXPECT_EQ(neg * one, neg);
+    EXPECT_EQ(one * neg, neg);
 }
 
 TEST(External, multiply){

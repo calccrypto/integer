@@ -6,7 +6,7 @@ TEST(BitShift, left){
     // operator<<
     integer pos("1", 16);
     for(uint8_t i = 0; i < 64; i++){
-        EXPECT_EQ(pos << i, ((uint64_t) 1) << i);
+        EXPECT_EQ(pos << i, ((uint64_t) 1ULL) << i);
     }
 
     integer zero("0", 16);

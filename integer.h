@@ -66,8 +66,8 @@ class integer{
 
     private:
         static constexpr INTEGER_DIGIT_T NEG1     = std::numeric_limits <INTEGER_DIGIT_T>::max(); // value with all bits ON - will only work for unsigned integer types
-        static constexpr INTEGER_DIGIT_T OCTETS   = sizeof(INTEGER_DIGIT_T);                      // number of octets per INTEGER_DIGIT_T
-        static constexpr INTEGER_DIGIT_T BITS     = OCTETS << 3;                                  // number of bits per INTEGER_DIGIT_T; hardcode this if INTEGER_DIGIT_T is not standard int type
+        static constexpr std::size_t     OCTETS   = sizeof(INTEGER_DIGIT_T);                      // number of octets per INTEGER_DIGIT_T
+        static constexpr std::size_t     BITS     = OCTETS << 3;                                  // number of bits per INTEGER_DIGIT_T; hardcode this if INTEGER_DIGIT_T is not standard int type
         static constexpr INTEGER_DIGIT_T HIGH_BIT = 1 << (BITS - 1);                              // highest bit of INTEGER_DIGIT_T (uint8_t -> 128)
 
     public:
@@ -86,18 +86,26 @@ class integer{
                           !std::is_reference <Z>::value
                           , "Input to integer::setFromZ should be passed by value");
             _value.clear();
-            _sign = POSITIVE;
+            Sign sign = POSITIVE; // set _sign later
 
-            if (val < 0){
-                _sign = NEGATIVE;
+            if (std::is_signed <Z>::value && (val < 0)){
+                sign = NEGATIVE;
                 val = -val;
             }
 
-            while (val){
-                _value.push_front(val & NEG1);
-                val >>= BITS;
+            // prevent infinite recursion
+            if ((sizeof(Z) <= OCTETS) ||    // input type fits into a single digit
+                 (val      <= (Z) NEG1)){   // input type doesn't fit, but value is small enough to fit
+                _value.push_back(val & NEG1);
+            }
+            else{
+                while (val){
+                    _value.push_front(val & NEG1);
+                    val >>= BITS;
+                }
             }
 
+            _sign = sign;
             return trim();
         }
 
@@ -149,7 +157,7 @@ class integer{
                 }
             }
             else if (base == 16){
-                while (start != end){
+                for(; start != end; start++){
                     if (std::isxdigit(*start)){
                         *this <<= 4;
                         if (std::isdigit(*start)){
@@ -162,8 +170,8 @@ class integer{
                     else{
                         throw std::runtime_error(std::string("Error: Non-hexadecimal character found: '") + *start + "'");
                     }
-                    ++start;
                 }
+
             }
             else if (base == 256){
                 while (start != end){
@@ -526,14 +534,14 @@ class integer{
         // get private values
         Sign sign() const;
 
-        // get number of bits
+        // get minimum number of bits needed to hold this value
         integer bits() const;
 
-        // get number of bytes
-        integer bytes() const;
+        // get minimum number of bytes needed to hold this value
+        REP_SIZE_T bytes() const;
 
         // get number of digits of internal representation
-        integer digits() const;
+        REP_SIZE_T digits() const;
 
         // get internal data
         REP data() const;
@@ -542,16 +550,16 @@ class integer{
         integer & negate();
 
         // Two's compliment - specify number of bits to make output make sense
-        integer twos_complement(unsigned int b) const;
+        integer twos_complement(const REP_SIZE_T & b) const;
 
         // fills an integer with 1s
-        integer & fill(const uint64_t & b);
+        integer & fill(const REP_SIZE_T & b);
 
         // get bit, where 0 is the lsb and bits() - 1 is the msb
-        bool operator[](const unsigned int & b) const;
+        bool operator[](const REP_SIZE_T & b) const;
 
         // Output _value as a string in bases 2 to 16, and 256
-        std::string str(const uint16_t & base = 10, const unsigned int & length = 1) const;
+        std::string str(const integer & base = 10, const std::string::size_type & length = 1) const;
 
         std::string string() const {
             std::stringstream s;

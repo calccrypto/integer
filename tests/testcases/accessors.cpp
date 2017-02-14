@@ -21,11 +21,8 @@ TEST(Accessor, bits){
 TEST(Accessor, bytes){
     integer value = 1;
 
-    const std::size_t BYTES = sizeof(INTEGER_DIGIT_T);
-    const std::size_t BITS  = BYTES * 8;
-
     for(uint32_t i = 0; i < 256; i++){
-        EXPECT_EQ(value.bytes(), BYTES * (1 + (i / BITS))); // before shift
+        EXPECT_EQ(value.bytes(), (i >> 3) + 1); // before shift
         value <<= 1;
     }
 
