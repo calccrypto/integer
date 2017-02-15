@@ -442,7 +442,6 @@ class integer{
         template <typename Z>
         integer operator*(const Z & rhs)       const {
             static_assert(std::is_integral <Z>::value
-
                           , "Input type must be integral");
             return *this * integer(rhs);
         }
