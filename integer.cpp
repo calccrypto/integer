@@ -53,38 +53,6 @@ integer::integer(const bool & b) :
     trim();
 }
 
-integer::integer(const uint8_t & val){
-    setFromZ(val);
-}
-
-integer::integer(const uint16_t & val){
-    setFromZ(val);
-}
-
-integer::integer(const uint32_t & val){
-    setFromZ(val);
-}
-
-integer::integer(const uint64_t & val){
-    setFromZ(val);
-}
-
-integer::integer(const int8_t & val){
-    setFromZ(val);
-}
-
-integer::integer(const int16_t & val){
-    setFromZ(val);
-}
-
-integer::integer(const int32_t & val){
-    setFromZ(val);
-}
-
-integer::integer(const int64_t & val){
-    setFromZ(val);
-}
-
 integer::integer(const std::string & val, const uint16_t & base)
 {
     integer::Sign sign = integer::POSITIVE;

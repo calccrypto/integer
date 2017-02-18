@@ -112,17 +112,16 @@ class integer{
         integer(integer && rhs);
         integer(const REP & rhs, const Sign & sign = POSITIVE);
 
-        // Constructors for Integral Input
-        // (cannot template: C++ Standard 14.5.2p5)
-        integer(const bool     & b);
-        integer(const uint8_t  & val);
-        integer(const uint16_t & val);
-        integer(const uint32_t & val);
-        integer(const uint64_t & val);
-        integer(const int8_t   & val);
-        integer(const int16_t  & val);
-        integer(const int32_t  & val);
-        integer(const int64_t  & val);
+        // Special boolean constructor
+        integer(const bool & b);
+
+        // Constructors for integral input
+        template <typename Z>
+        integer(const Z & val){
+            static_assert(std::is_integral <Z>::value
+                          , "Input type must be integral");
+            setFromZ(val);
+        }
 
         // Special Constructor for Strings
         integer(const std::string & val, const uint16_t & base);
