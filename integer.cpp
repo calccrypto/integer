@@ -53,27 +53,66 @@ integer::integer(const bool & b) :
     trim();
 }
 
-integer::integer(const std::string & val, const uint16_t & base)
+// Special Constructor for Strings
+// bases 2-16 and 256 are allowed
+//      Written by Corbin http://codereview.stackexchange.com/a/13452
+//      Modified by me
+integer::integer(const std::string & str, const unsigned int & base) : integer()
 {
-    integer::Sign sign = integer::POSITIVE;
-    std::string::const_iterator it = val.begin();
-
-    // minus sign indicates negative value only if the base is between 2 and 16 inclusive
     if ((2 <= base) && (base <= 16)){
-        if (it != val.end()){
-            if (*it == '-'){
+        if (!str.size()){
+            return;
+        }
+
+        integer::Sign sign = integer::POSITIVE;
+        std::string::size_type index = 0;
+
+        // minus sign indicates negative value
+        if ((2 <= base) && (base <= 16)){
+            if (str[0] == '-'){
+                // make sure there are more digits
+                if (str.size() < 2){
+                    throw std::runtime_error("Error: Input string is too short");
+                }
+
                 sign = integer::NEGATIVE;
-                it++;
+                index++;
             }
         }
+
+        // process characters
+        for(; index < str.size(); index++){
+            uint8_t d = std::tolower(str[index]);
+            if (std::isdigit(d)){       // 0-9
+                d -= '0';
+                if (d >= base){
+                    throw std::runtime_error(std::string("Error: Not a digit in base ") + std::to_string(base) + ": '"+ str[index] + "'");
+                }
+            }
+            else if (std::isxdigit(d)){ // a-f
+                d -= 'a' - 10;
+                if (d >= base){
+                    throw std::runtime_error(std::string("Error: Not a digit in base ") + std::to_string(base) + ": '"+ str[index] + "'");
+                }
+            }
+            else{                       // bad character
+                throw std::runtime_error(std::string("Error: Not a digit in base ") + std::to_string(base) + ": '"+ str[index] + "'");
+            }
+
+            *this = (*this * base) + d;
+        }
+
+        _sign = sign;
     }
-    else if (base == 256){} // do nothing; value is considered positive
-    else {
+    else if (base == 256){
+        for(unsigned char const & c : str){
+            *this = (*this << 8) | (c & 0xff);
+        }
+    }
+    else{
         throw std::runtime_error("Error: Cannot convert from base " + std::to_string(base));
     }
 
-    *this = integer(it, val.end(), base);
-    _sign = sign;
     trim();
 }
 

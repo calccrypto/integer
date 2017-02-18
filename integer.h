@@ -94,6 +94,7 @@ class integer{
                 val = -val; // treat as positive even if top bit is still set
             }
 
+            // keep this here just in case value is sign extended
             for(std::size_t d = std::max(sizeof(Z) / OCTETS, (std::size_t) 1); d > 0; d--){
                 _value.push_front(val & NEG1);
                 val >>= BITS;
@@ -124,56 +125,18 @@ class integer{
         }
 
         // Special Constructor for Strings
-        integer(const std::string & val, const uint16_t & base);
+        // bases 2-16 and 256 are allowed
+        //      Written by Corbin http://codereview.stackexchange.com/a/13452
+        //      Modified by me
+        integer(const std::string & val, const unsigned int & base);
 
         // Use this to construct integers with other types that have pointers/iterators to their beginning and end
-        //  - all inputs are treated as positive values
-        //  - each element in the container is treated as one digit in the original format of the value
-        //    so values lareger than 255 might construct bad values
-        //
-        //      Written by Corbin
-        //      Modified by me
-        //
-        template <typename Iterator> integer(Iterator start, const Iterator & end, const uint16_t & base) : integer() {
-            if (start == end){
-                return;
+        // all inputs are treated as positive values
+        template <typename Iterator> integer(Iterator start, const Iterator & end, const unsigned int & base) : integer()
+        {
+            for(; start != end; start++){
+                *this = (*this * base) | *start;
             }
-
-            _sign = POSITIVE;                   // force *this to be positive
-
-            if ((2 <= base) && (base <= 16)){
-                for(; start != end; start++){
-                    uint8_t d = std::tolower(*start);
-                    if (std::isdigit(d)){       // 0-9
-                        d -= '0';
-                        if (d >= base){
-                            throw std::runtime_error(std::string("Error: Not a digit in base ") + std::to_string(base) + ": '"+ *start + "'");
-                        }
-                    }
-                    else if (std::isxdigit(d)){ // a-f
-                        d -= 'a' - 10;
-                        if (d >= base){
-                            throw std::runtime_error(std::string("Error: Not a digit in base ") + std::to_string(base) + ": '"+ *start + "'");
-                        }
-                    }
-                    else{                       // bad character
-                        throw std::runtime_error(std::string("Error: Not a digit in base ") + std::to_string(base) + ": '"+ *start + "'");
-                    }
-
-                    *this = (*this * base) + d;
-                }
-            }
-            else if (base == 256){
-                while (start != end){
-                    *this = (*this << 8) | (*start & 0xff);
-                    ++start;
-                }
-            }
-            else{
-                throw std::runtime_error("Error: Cannot convert from base " + std::to_string(base));
-            }
-
-            trim();
         }
 
     public:
