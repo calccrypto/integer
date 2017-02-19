@@ -1,3 +1,8 @@
+#include <array>
+#include <deque>
+#include <list>
+#include <vector>
+
 #include <gtest/gtest.h>
 
 #include "integer.h"
@@ -220,4 +225,20 @@ TEST(Constructor, string){
 
     // bad base, no contents
     EXPECT_THROW(integer("",                   33), std::runtime_error);
+}
+
+TEST(Constructor, iterator){
+    const std::string            string("\x0f\x0e\x0d\x0c\x0b\x0a\x09\x08\x07\x06\x05\x04\x03\x02\x01\x00", 16);
+    const std::array  <int, 16>  array {0xf, 0xe, 0xd, 0xc, 0xb, 0xa, 0x9, 0x8, 0x7, 0x6, 0x5, 0x4, 0x3, 0x2, 0x1, 0x0};
+    const std::deque  <char>     deque (string.begin(), string.end());
+    const std::list   <char>     list  (string.begin(), string.end());
+    const std::vector <uint64_t> vector(string.begin(), string.end());
+
+    const integer val("fedcba9876543210", 16);
+
+    EXPECT_EQ(val, integer( string.begin(), string.end(), 16));
+    EXPECT_EQ(val, integer(  array.begin(),  array.end(), 16));
+    EXPECT_EQ(val, integer(  deque.begin(),  deque.end(), 16));
+    EXPECT_EQ(val, integer(   list.begin(),   list.end(), 16));
+    EXPECT_EQ(val, integer( vector.begin(), vector.end(), 16));
 }
