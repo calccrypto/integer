@@ -134,6 +134,10 @@ class integer{
         // all inputs are treated as positive values
         template <typename Iterator> integer(Iterator start, const Iterator & end, const integer & base) : integer()
         {
+            if (base < 2){
+                throw std::runtime_error("Error: Cannot convert from base " + base.str(10));
+            }
+
             for(; start != end; start++){
                 *this = (*this * base) | *start;
             }
@@ -763,16 +767,47 @@ integer pow(integer value, Z exp){
         return 0;
     }
 
+    Z one = 1;
     integer result = 1;
     while (exp){
-        if (exp & 1){
+        if (exp & one){
             result *= value;
         }
-        exp >>= 1;
+        exp >>= one;
         value *= value;
     }
 
     return result;
+}
+
+template <typename Z_e, typename Z_m>
+integer pow(integer base, Z_e exponent, const Z_m modulus){
+    static_assert(std::is_integral <Z_e>::value &&
+                  std::is_integral <Z_m>::value
+                  , "Exponent type should be integral");
+
+    if (exponent < 0){
+        return 0;
+    }
+
+    if (abs(modulus) < 1){
+        throw std::domain_error(std::string("Error: Bad modulus: ") + integer(modulus).str(10));
+    }
+
+    const Z_e one = 1;
+    integer exp = exponent;
+    const integer mod = modulus;
+
+	integer result = 1;
+	while (exp){
+		if (exp & one){
+			result = (result * base) % mod;
+        }
+		exp >>= one;
+		base = (base * base) % mod;
+	}
+
+	return result;
 }
 
 #endif // INTEGER_H

@@ -24,10 +24,10 @@ should be more than enough for any purpose.
     #include "integer.h"
 
     int main(){
-        integer a = -1234;          // standard integer input
-        integer b( "5678",    16);  // string input (no base prefixes: '0b' or '0x')
-        integer c("-9abC",    16);  // hex input cases can be mixed
-        integer d( "Hello!", 256);  // ASCII strings can be used too!
+        integer a = -1234;         // standard integer input
+        integer b(  "5678",  16);  // string input (no base prefixes: '0b' or '0x')
+        integer c( "-9abC",  16);  // hex input cases can be mixed
+        integer d("Hello!", 256);  // ASCII strings can be used too!
 
         integer sum = a + b + c + d + 1;           // 79600447923724 (decimal)
 
@@ -71,11 +71,14 @@ should be more than enough for any purpose.
 
 #### Notes
 
-- Conversions for bases [2, 16] and 256 are provided.
+- Conversions for strings of values in bases [2, 16] and 256 are provided.
   If others are required, add the conversions to
   `integer::integer(Iterator, const Iterator&, const uint16_t &)`
   and
   `std::string integer::str(const uint16_t &, const unsigned int &) const`
+
+- The constructor using iterators allows for creating values
+  from any integral base larger than 1.
 
 - Hexadecimal output strings use lowercase characters.
 

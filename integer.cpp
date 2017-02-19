@@ -65,19 +65,18 @@ integer::integer(const std::string & str, const integer & base) : integer()
         }
 
         integer::Sign sign = integer::POSITIVE;
+
         std::string::size_type index = 0;
 
         // minus sign indicates negative value
-        if ((2 <= base) && (base <= 16)){
-            if (str[0] == '-'){
-                // make sure there are more digits
-                if (str.size() < 2){
-                    throw std::runtime_error("Error: Input string is too short");
-                }
-
-                sign = integer::NEGATIVE;
-                index++;
+        if (str[0] == '-'){
+            // make sure there are more digits
+            if (str.size() < 2){
+                throw std::runtime_error("Error: Input string is too short");
             }
+
+            sign = integer::NEGATIVE;
+            index++;
         }
 
         // process characters
@@ -149,7 +148,7 @@ integer::operator uint16_t() const {
     uint16_t out = 0;
 
     const integer::REP_SIZE_T d = std::min(digits(), std::max((integer::REP_SIZE_T) 2 / integer::OCTETS, (integer::REP_SIZE_T) 1));
-    for(std::size_t x = 0; x < d; x++){
+    for(integer::REP_SIZE_T x = 0; x < d; x++){
         out += static_cast <uint16_t> (_value[digits() - x - 1]) << (x * integer::BITS);
     }
 
@@ -160,7 +159,7 @@ integer::operator uint32_t() const {
     uint32_t out = 0;
 
     const integer::REP_SIZE_T d = std::min(digits(), std::max((integer::REP_SIZE_T) 4 / integer::OCTETS, (integer::REP_SIZE_T) 1));
-    for(std::size_t x = 0; x < d; x++){
+    for(integer::REP_SIZE_T x = 0; x < d; x++){
         out += static_cast <uint32_t> (_value[digits() - x - 1]) << (x * integer::BITS);
     }
 
@@ -171,7 +170,7 @@ integer::operator uint64_t() const {
     uint64_t out = 0;
 
     const integer::REP_SIZE_T d = std::min(digits(), std::max((integer::REP_SIZE_T) 8 / integer::OCTETS, (integer::REP_SIZE_T) 1));
-    for(std::size_t x = 0; x < d; x++){
+    for(integer::REP_SIZE_T x = 0; x < d; x++){
         out += static_cast <uint64_t> (_value[digits() - x - 1]) << (x * integer::BITS);
     }
 
@@ -187,7 +186,7 @@ integer::operator int16_t() const {
     int16_t out = 0;
 
     const integer::REP_SIZE_T d = std::min(digits(), std::max((integer::REP_SIZE_T) 2 / integer::OCTETS, (integer::REP_SIZE_T) 1));
-    for(std::size_t x = 0; x < d; x++){
+    for(integer::REP_SIZE_T x = 0; x < d; x++){
         out += static_cast <int16_t> (_value[digits() - x - 1]) << (x * integer::BITS);
     }
 
@@ -198,7 +197,7 @@ integer::operator int32_t() const {
     int32_t out = 0;
 
     const integer::REP_SIZE_T d = std::min(digits(), std::max((integer::REP_SIZE_T) 4 / integer::OCTETS, (integer::REP_SIZE_T) 1));
-    for(std::size_t x = 0; x < d; x++){
+    for(integer::REP_SIZE_T x = 0; x < d; x++){
         out += static_cast <int32_t> (_value[digits() - x - 1]) << (x * integer::BITS);
     }
 
@@ -209,7 +208,7 @@ integer::operator int64_t() const {
     int64_t out = 0;
 
     const integer::REP_SIZE_T d = std::min(digits(), std::max((integer::REP_SIZE_T) 8 / integer::OCTETS, (integer::REP_SIZE_T) 1));
-    for(std::size_t x = 0; x < d; x++){
+    for(integer::REP_SIZE_T x = 0; x < d; x++){
         out += static_cast <int64_t> (_value[digits() - x - 1]) << (x * integer::BITS);
     }
 

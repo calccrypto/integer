@@ -225,7 +225,7 @@ TEST(Miscellaneous, log){
     EXPECT_THROW(log(integer(-1), -1), std::domain_error);
 }
 
-TEST(Miscellaneous, pow){
+TEST(Miscellaneous, pow2){
     const integer base  ("3",    10);
     const integer exp   ("1001", 10);
     const integer result("5d8970339fa3ca286c2457af9c3462c73749db289a4a25a6f1d7e60e49d314bde6f1f456c24e123e435a4545469f68f9883ce97aacc052e253cabeade2f8b313bcc748e361f779d8a0af649f9aa256ae0e2d2fa6fa62c9f05ab32741d0a828632eb5c6ce44184a5b1cfe4689badb01585e3912019c12444a086e75221e6b430196faf154fc12b0999a06ce01b9d0455cbfb849dcb2e1361b1d9a58b191e40f214bd446fab70246a131377e0dad97bad94c8c4189d894a4dbc2504e693793b0243ba737b291163", 16);
@@ -236,3 +236,19 @@ TEST(Miscellaneous, pow){
     EXPECT_EQ(pow( base,  -1),       0);
 }
 
+TEST(Miscellaneous, pow3){
+    const integer base  ("3",    10);
+    const integer exp   ("1001", 10);
+    const integer mod   ("1234", 10);
+    const integer result("139",  10);
+
+    EXPECT_EQ(pow( base,  exp,  mod),  result);
+    EXPECT_EQ(pow(-base,  exp,  mod), -result);
+    EXPECT_EQ(pow( base,  exp, -mod),  result);
+    EXPECT_EQ(pow(-base,  exp, -mod), -result);
+
+    EXPECT_THROW(pow(base, exp, 0), std::domain_error);
+
+    EXPECT_EQ(pow( base,    0,   mod),      1);
+    EXPECT_EQ(pow( base,   -1,   mod),      0);
+}
