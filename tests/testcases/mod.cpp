@@ -24,7 +24,7 @@ TEST(Arithmetic, modulo){
     EXPECT_EQ(neg_0 % neg_mod_0, integer("0", 16));
 
     // mod 0
-    EXPECT_THROW(integer(1) % integer(0), std::runtime_error);
+    EXPECT_THROW(integer(1) % integer(0), std::domain_error);
 }
 
 TEST(External, modulo){

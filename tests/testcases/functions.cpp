@@ -216,10 +216,10 @@ TEST(Miscellaneous, log){
     }
 
     // invalid base
-    EXPECT_THROW(log(integer(1), -1), std::domain_error);
+    EXPECT_THROW(log(integer(1),  -1), std::domain_error);
 
     // invalid value
-    EXPECT_THROW(log(integer(-1), 1), std::domain_error);
+    EXPECT_THROW(log(integer(-1),  1), std::domain_error);
 
     // invalid base and value
     EXPECT_THROW(log(integer(-1), -1), std::domain_error);

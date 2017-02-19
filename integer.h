@@ -786,12 +786,13 @@ integer pow(integer base, Z_e exponent, const Z_m modulus){
                   std::is_integral <Z_m>::value
                   , "Exponent type should be integral");
 
-    if (exponent < 0){
-        return 0;
+    // check modulus first
+    if (!modulus){
+        throw std::domain_error("Error: modulus by 0");
     }
 
-    if (abs(modulus) < 1){
-        throw std::domain_error(std::string("Error: Bad modulus: ") + integer(modulus).str(10));
+    if (exponent < 0){
+        return 0;
     }
 
     const Z_e one = 1;

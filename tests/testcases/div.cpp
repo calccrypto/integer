@@ -30,7 +30,7 @@ TEST(Arithmetic, divide){
     EXPECT_EQ(big_pos   / small_pos, res_pos);
     EXPECT_EQ(big_pos   / big_pos,         1);
 
-    EXPECT_THROW(integer(1) / integer(0), std::runtime_error);
+    EXPECT_THROW(integer(1) / integer(0), std::domain_error);
 }
 
 TEST(External, divide){

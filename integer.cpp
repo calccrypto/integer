@@ -1072,7 +1072,7 @@ std::pair <integer, integer> integer::non_recursive_divmod(const integer & lhs, 
 // division and modulus ignoring signs
 std::pair <integer, integer> integer::dm(const integer & lhs, const integer & rhs) const {
     if (!rhs){              // divide by 0 error
-        throw std::runtime_error("Error: division or modulus by 0");
+        throw std::domain_error("Error: division or modulus by 0");
     }
 
     if (rhs == 1){          // divide by 1 check
