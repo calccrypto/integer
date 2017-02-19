@@ -128,11 +128,11 @@ class integer{
         // bases 2-16 and 256 are allowed
         //      Written by Corbin http://codereview.stackexchange.com/a/13452
         //      Modified by me
-        integer(const std::string & val, const unsigned int & base);
+        integer(const std::string & val, const integer & base);
 
         // Use this to construct integers with other types that have pointers/iterators to their beginning and end
         // all inputs are treated as positive values
-        template <typename Iterator> integer(Iterator start, const Iterator & end, const unsigned int & base) : integer()
+        template <typename Iterator> integer(Iterator start, const Iterator & end, const integer & base) : integer()
         {
             for(; start != end; start++){
                 *this = (*this * base) | *start;

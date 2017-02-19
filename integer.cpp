@@ -57,7 +57,7 @@ integer::integer(const bool & b) :
 // bases 2-16 and 256 are allowed
 //      Written by Corbin http://codereview.stackexchange.com/a/13452
 //      Modified by me
-integer::integer(const std::string & str, const unsigned int & base) : integer()
+integer::integer(const std::string & str, const integer & base) : integer()
 {
     if ((2 <= base) && (base <= 16)){
         if (!str.size()){
@@ -86,17 +86,17 @@ integer::integer(const std::string & str, const unsigned int & base) : integer()
             if (std::isdigit(d)){       // 0-9
                 d -= '0';
                 if (d >= base){
-                    throw std::runtime_error(std::string("Error: Not a digit in base ") + std::to_string(base) + ": '"+ str[index] + "'");
+                    throw std::runtime_error(std::string("Error: Not a digit in base ") + base.str(10) + ": '"+ str[index] + "'");
                 }
             }
             else if (std::isxdigit(d)){ // a-f
                 d -= 'a' - 10;
                 if (d >= base){
-                    throw std::runtime_error(std::string("Error: Not a digit in base ") + std::to_string(base) + ": '"+ str[index] + "'");
+                    throw std::runtime_error(std::string("Error: Not a digit in base ") + base.str(10) + ": '"+ str[index] + "'");
                 }
             }
             else{                       // bad character
-                throw std::runtime_error(std::string("Error: Not a digit in base ") + std::to_string(base) + ": '"+ str[index] + "'");
+                throw std::runtime_error(std::string("Error: Not a digit in base ") + base.str(10) + ": '"+ str[index] + "'");
             }
 
             *this = (*this * base) + d;
@@ -105,12 +105,13 @@ integer::integer(const std::string & str, const unsigned int & base) : integer()
         _sign = sign;
     }
     else if (base == 256){
+        // process characters
         for(unsigned char const & c : str){
             *this = (*this << 8) | (c & 0xff);
         }
     }
     else{
-        throw std::runtime_error("Error: Cannot convert from base " + std::to_string(base));
+        throw std::runtime_error("Error: Cannot convert from base " + base.str(10));
     }
 
     trim();
