@@ -8,8 +8,6 @@
 #include "integer.h"
 
 TEST(Constructor, standard){
-    integer(123);
-
     integer value("0123456789abcdef", 16);
     const integer original = value;
 
@@ -236,9 +234,9 @@ TEST(Constructor, iterator){
 
     const integer val("fedcba9876543210", 16);
 
-    EXPECT_EQ(val, integer( string.begin(), string.end(), 16));
-    EXPECT_EQ(val, integer(  array.begin(),  array.end(), 16));
-    EXPECT_EQ(val, integer(  deque.begin(),  deque.end(), 16));
-    EXPECT_EQ(val, integer(   list.begin(),   list.end(), 16));
-    EXPECT_EQ(val, integer( vector.begin(), vector.end(), 16));
+    EXPECT_EQ(val, integer(string.begin(), string.end(), 16));
+    EXPECT_EQ(val, integer( array.begin(),  array.end(), 16));
+    EXPECT_EQ(val, integer( deque.begin(),  deque.end(), 16));
+    EXPECT_EQ(val, integer(  list.begin(),   list.end(), 16));
+    EXPECT_EQ(val, integer(vector.begin(), vector.end(), 16));
 }

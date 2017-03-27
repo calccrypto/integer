@@ -16,8 +16,6 @@ TEST(BitWise, and){
 
     const integer pos("f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0", 16);
 
-    i8 & pos;
-
     // EXPECT_EQ(t   &  pos, integer("0",                                16));
     // EXPECT_EQ(f   &  pos, integer("0",                                16));
     // EXPECT_EQ(u8  &  pos, integer("a0",                               16));
@@ -131,6 +129,6 @@ TEST(External, and){
     EXPECT_EQ(i64 &= neg, (int64_t)  0);
 
     // zero
-    EXPECT_EQ(integer() ^ pos, pos);
-    EXPECT_EQ(integer() ^ neg, neg);
+    EXPECT_EQ(integer() & pos, 0);
+    EXPECT_EQ(integer() & neg, 0);
 }

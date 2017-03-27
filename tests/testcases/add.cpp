@@ -7,10 +7,10 @@ TEST(Arithmetic, add){
     integer neg("-fedbca9876543210", 16);
 
     EXPECT_EQ((pos + pos).str(16),   "1fdb79530eca86420");
-    EXPECT_EQ((pos + neg).str(16),  "0");
+    EXPECT_EQ((pos + neg).str(16),   "0");
     EXPECT_EQ((neg + neg).str(16),  "-1fdb79530eca86420");
 
-    EXPECT_EQ((pos += neg).str(16), "0");
+    EXPECT_EQ((pos += neg).str(16),  "0");
     EXPECT_EQ((neg += pos).str(16), "-fedbca9876543210");
 }
 

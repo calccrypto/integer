@@ -42,7 +42,7 @@ all: $(TARGET)
 $(TESTCASES): %.o : %.cpp ../integer.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-../integer.o: ../integer.cpp
+../integer.o: ../integer.h ../integer.cpp
 	$(CXX) $(CXXFLAGS) -c ../integer.cpp -o $@
 
 $(TARGET): test.cpp ../integer.o $(TESTCASES)
