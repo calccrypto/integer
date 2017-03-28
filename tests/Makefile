@@ -1,6 +1,6 @@
 CXX?=g++
-CXXFLAGS=-std=c++11 -Wall -g -Igoogletest/googletest/include -I..
-LDFLAGS=-Lgoogletest/googlemock/gtest -lgtest -lpthread
+CXXFLAGS=-std=c++11 -Wall -g -I../../googletest/googletest/include -I..
+LDFLAGS=-L../../googletest/googlemock/gtest -lgtest -lpthread
 TARGET=test
 
 # DIGIT_T and DOUBLE_DIGIT_T can be defined by the user
