@@ -22,4 +22,5 @@ INTEGER_TESTCASES_OBJECTS=constructor.o   \
                           mod.o           \
                           fix.o           \
                           unary.o         \
-                          functions.o
+                          functions.o     \
+                          type_traits.o
