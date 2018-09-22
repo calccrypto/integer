@@ -14,7 +14,7 @@ With much help from:
 - ROBOKITTY @ Code Review (StackExchange)
 - Winston Ewert @ Code Review (StackExchange) - suggested many improvements
 
-Although this class can theoretically hold an infinily large value,
+Although this class can theoretically hold an infinitely large value,
 the actual limit of how large the integers can be is
 `std::deque <Z>().max_size() * sizeof(Z) * 8 bits`, which
 should be more than enough for any purpose.
