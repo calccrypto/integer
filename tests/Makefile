@@ -1,6 +1,6 @@
 CXX?=g++
-CXXFLAGS=-std=c++11 -Wall -g -I../../googletest/googletest/include -I..
-LDFLAGS=-L../../googletest/googlemock/gtest -lgtest -lpthread
+CXXFLAGS=-std=c++11 -Wall -g -D_POSIX_C_SOURCE=200809L -I../../googletest/googletest/include -I..
+LDFLAGS=-L../../googletest/build/lib -lgtest -lgtest_main -lpthread
 TARGET=test
 
 # DIGIT_T and DOUBLE_DIGIT_T can be defined by the user
@@ -20,8 +20,8 @@ testcases:
 ../integer.o: ../integer.h ../integer.cpp
 	$(CXX) $(CXXFLAGS) -c ../integer.cpp -o $@
 
-$(TARGET): test.cpp ../integer.o testcases
-	$(CXX) $(CXXFLAGS) test.cpp ../integer.o $(addprefix testcases/, $(INTEGER_TESTCASES_OBJECTS)) $(LDFLAGS) -o $(TARGET)
+$(TARGET): ../integer.o testcases
+	$(CXX) $(CXXFLAGS) ../integer.o $(addprefix testcases/, $(INTEGER_TESTCASES_OBJECTS)) $(LDFLAGS) -o $(TARGET)
 
 run: $(TARGET)
 	./$(TARGET)

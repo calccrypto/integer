@@ -1,6 +1,6 @@
 # integer testcases Makefile
 CXX?=g++
-CXXFLAGS=-std=c++11 -Wall -g -I../../../googletest/googletest/include -I../..
+CXXFLAGS=-std=c++11 -Wall -g -D_POSIX_C_SOURCE=200809L -I../../../googletest/googletest/include -I../..
 
 include objects.mk
 
